@@ -25,7 +25,7 @@ os.environ.get("DJANGO_SECRET") = 'os.environ.get("DJANGO_SECRET")'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['project-b-24-s2025-c2e9cfd287ea.herokuapp.com', '127.0.0.1', 'localhost']
 
 
 # Application definition
