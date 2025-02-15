@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex-grow: 1;
+        }
+        .login-box {
+            max-width: 400px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="d-flex flex-column">
+
+    <!-- Header -->
+    <header class="bg-light text-center py-3">
+        <h1>Welcome to the Music Cataloging App</h1>
+        <p class="mb-0">Log in with Google to access all features!</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="d-flex flex-column justify-content-center align-items-center text-center flex-grow-1">
+        <div class="login-box">
+            <h2 class="mb-3">Login Required</h2>
+            <p>To access all features, please log in:</p>
+            <button class="btn btn-primary w-100" onclick="alert('Google login placeholder. Not implemented yet');">
+                <i class="bi bi-google"></i> Login with Google
+            </button>
+        </div>
+
+        <div class="mt-4">
+            <h3>Browse Public Collections</h3>
+            <p>You can browse the public collections below without logging in:</p>
+            <a href="/public-collections" class="btn btn-success">View Public Collections</a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light text-center py-3 mt-auto">
+        <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
+    </footer>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['project-b-24-s2025-c2e9cfd287ea.herokuapp.com', '127.0.0.1', '
 # Application definition
 
 INSTALLED_APPS = [
+    'music.apps.MusicConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
