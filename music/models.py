@@ -82,4 +82,24 @@ from django.db import models
 #         return f"Comment by {self.patron.name} on {self.item.title}"
 #
 
+class Librarian(models.Model):
+    user_id = models.CharField(primary_key=True, max_length=200)
+    name = models.CharField(max_length=200)
+    google_account = models.CharField(max_length=200)
+    profile_picture = models.ImageField(height_field=100)
+    date_joined = models.DateTimeField('date_joined')
+
+    def __str__(self):
+        return self.user_id
+
+
+class Patron(models.Model):
+    user_id = models.CharField(primary_key=True, max_length=200)
+    name = models.CharField(max_length=200)
+    google_account = models.CharField(max_length=200)
+    profile_picture = models.ImageField(height_field=100)
+    date_joined = models.DateTimeField('date_joined')
+
+    def __str__(self):
+        return self.user_id
 
