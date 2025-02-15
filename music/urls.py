@@ -3,4 +3,5 @@ from . import views
 
 urlpatterns = [
     path("", views.login_page, name='login'),
+    path("/anon", views.anonymous_front, name="anon")
 ]

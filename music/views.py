@@ -6,3 +6,6 @@ from django.contrib.auth.decorators import login_required
 
 def login_page(request):
     return render(request, "music/login_page.html")
+
+def anonymous_front(request):
+    return render(request, "music/anonymous_front.html")
