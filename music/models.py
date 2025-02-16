@@ -37,6 +37,11 @@ from django.db import models
 #         return self.title
 
 
+# TODO: placeholder Item model. CHANGE THIS LATER
+class Item(models.Model):
+    identifier = models.CharField(max_length=64, unique=True)
+    title = models.CharField(max_length=255)
+
 # class Collection(models.Model):
 #     title = models.CharField(max_length=255)  # Title of the collection
 #     description = models.TextField(blank=True, null=True)  # Optional
