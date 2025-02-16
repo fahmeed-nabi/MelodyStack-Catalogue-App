@@ -39,7 +39,7 @@ from django.db import models
 
 # TODO: placeholder Item model. CHANGE THIS LATER
 class Item(models.Model):
-    identifier = models.CharField(max_length=64, unique=True)
+    # identifier = models.CharField(primary_key=True, max_length=64, unique=True)
     title = models.CharField(max_length=255)
 
 # class Collection(models.Model):

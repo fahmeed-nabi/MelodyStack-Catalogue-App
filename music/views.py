@@ -9,15 +9,15 @@ from .models import Item
 def login_page(request):
     return render(request, "music/login_page.html")
 
-def anonymous_front(request):
-    return render(request, "music/anonymous_front.html")
+# def anonymous_front(request):
+#     return render(request, "music/anonymous_front.html")
 
-class IndexView(generic.ListView):
+class anonymous_front(generic.ListView):
     template_name = "music/anonymous_front.html"
     context_object_name = "items" # TODO: implement Item model
     
     def get_queryset(self):
-        return Item.objects # TODO: implement Item model
+        return Item.objects.all() # TODO: implement Item model
 
 # def librarian_page(request, user_id):
 #     librarian = get_object_or_404(Librarian, pk=user_id)
