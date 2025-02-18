@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("", views.login_page, name='login'),
-    path("/anon", views.anonymous_front, name="anon")
+    path("login/", views.login_page, name='login'),
+    path("public-collections/", views.anonymous_front, name="anon")
+    # path('librarian/<str:pk>/', views.librarian_page, name='librarian'),
+    # path('patron/<str:pk>/', views.patron_page, name='patron'),
 ]
