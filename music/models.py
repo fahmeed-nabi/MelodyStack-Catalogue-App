@@ -1,18 +1,6 @@
 from django.db import models
 
 # Create your models here.
-
-class Patron(models.Model):
-    user_id = models.CharField(primary_key=True, max_length=200)
-    name = models.CharField(max_length=200)
-    google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(height_field=100)
-    date_joined = models.DateTimeField('date_joined')
-
-    def __str__(self):
-        return self.user_id
-
-
 class Item(models.Model):
     STATUS_CHOICES = [
         ('CHECKED_IN', 'Checked In'),
@@ -49,10 +37,16 @@ class Item(models.Model):
         return self.title
 
 
-# TODO: placeholder Item model. CHANGE THIS LATER
-# class Item(models.Model):
-#     identifier = models.CharField(primary_key=True, max_length=64, unique=True)
-#     title = models.CharField(max_length=255)
+class Patron(models.Model):
+    user_id = models.CharField(primary_key=True, max_length=200)
+    name = models.CharField(max_length=200)
+    google_account = models.CharField(max_length=200)
+    profile_picture = models.ImageField(height_field=100)
+    date_joined = models.DateTimeField('date_joined')
+
+    def __str__(self):
+        return self.user_id
+
 
 class Collection(models.Model):
     title = models.CharField(max_length=255)  # Title of the collection
@@ -91,12 +85,12 @@ class Rating(models.Model):
 
 class Comment(models.Model):
     item = models.ForeignKey(Item, related_name='comments', on_delete=models.CASCADE)
-    # patron = models.ForeignKey(Patron, related_name='comments', on_delete=models.CASCADE)
+    patron = models.ForeignKey(Patron, related_name='comments', on_delete=models.CASCADE)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Comment by {self.patron.name} on {self.item.title}"
+        return f"Comment by {self.patron.user_id} on {self.item.title}"
 
 
 class Librarian(models.Model):
@@ -108,5 +102,7 @@ class Librarian(models.Model):
 
     def __str__(self):
         return self.user_id
+
+
 
 
