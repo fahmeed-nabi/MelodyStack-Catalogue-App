@@ -1,4 +1,8 @@
 from django.db import models
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 # Create your models here.
 class Item(models.Model):
@@ -38,14 +42,15 @@ class Item(models.Model):
 
 
 class Patron(models.Model):
-    user_id = models.CharField(primary_key=True, max_length=200)
+    primary_key = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patron_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(height_field=100)
+    profile_picture = models.ImageField(height_field=100, default=None)
     date_joined = models.DateTimeField('date_joined')
 
     def __str__(self):
-        return self.user_id
+        return self.name
 
 
 class Collection(models.Model):
@@ -94,14 +99,15 @@ class Comment(models.Model):
 
 
 class Librarian(models.Model):
-    user_id = models.CharField(primary_key=True, max_length=200)
+    primary_key = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="librarian_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(height_field=100)
+    profile_picture = models.ImageField(height_field=100, default=None)
     date_joined = models.DateTimeField('date_joined')
 
     def __str__(self):
-        return self.user_id
+        return self.name
 
 
 
