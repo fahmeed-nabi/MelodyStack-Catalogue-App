@@ -34,7 +34,7 @@ class Item(models.Model):
         upload_to='item_images/', blank=True, null=True
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True) 
 
     average_rating = models.FloatField(default=0.0)
 
