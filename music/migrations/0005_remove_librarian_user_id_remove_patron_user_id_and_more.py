@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='librarian',
             name='primary_key',
-            field=models.AutoField(default=100, primary_key=True, serialize=False),
+            field=models.AutoField(primary_key=True, serialize=False),
             preserve_default=False,
         ),
         migrations.AddField(
@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='patron',
             name='primary_key',
-            field=models.AutoField(default=100, primary_key=True, serialize=False),
+            field=models.AutoField(primary_key=True, serialize=False),
             preserve_default=False,
         ),
         migrations.AddField(
