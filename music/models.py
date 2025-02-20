@@ -43,7 +43,7 @@ class Item(models.Model):
 
 
 class Patron(models.Model):
-    primary_key = models.AutoField(primary_key=True)
+#    primary_key = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patron_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
@@ -59,7 +59,7 @@ class Collection(models.Model):
     description = models.TextField(blank=True, null=True)  # Optional
     public = models.BooleanField(default=True)  # Whether the collection is public or private
     private_users = models.ManyToManyField(
-        'Patron', related_name='accessible_collections', blank=True
+        Patron, related_name='accessible_collections', blank=True,  
     )  # Patrons allowed to view private collections
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -70,7 +70,11 @@ class Collection(models.Model):
         """
         if self.public:
             return True
-        return user in self.private_users.all()
+        try:
+            patron = Patron.objects.get(user=user)
+            return self.private_users.filter(id=patron.id).exists()
+        except Patron.DoesNotExist:
+            return False
 
     def __str__(self):
         return self.title
