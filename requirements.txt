@@ -10,6 +10,7 @@ gunicorn==23.0.0
 idna==3.10
 packaging==24.2
 pillow==11.1.0
+psycopg==3.2.4
 pycparser==2.22
 PyJWT==2.10.1
 requests==2.32.3
