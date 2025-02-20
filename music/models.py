@@ -19,6 +19,7 @@ class Item(models.Model):
         ('CASSETTE', 'Cassette Tape')
     ]
 
+    id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=255)
     identifier = models.CharField(max_length=64, unique=True)
     description = models.TextField(blank=True, null=True)
