@@ -40,10 +40,10 @@
     </style>
 </head>
 <body>
-
+    {% load socialaccount %}
     <header class="header d-flex justify-content-between align-items-center shadow-sm">
         <h2 onClick="alert('TODO: go back to index')" class="m-0 fw-normal hover:cursor-pointer">Music Media Storefront</h2>
-        <a href="#" class="btn btn-light btn-custom">Login with Google</a>
+        <a href="href="{% provider_login_url 'google' %}" class="btn btn-light btn-custom">Login with Google</a>
     </header>
 
     <div class="container mt-5">
