@@ -31,7 +31,7 @@ ALLOWED_HOSTS = ['project-b-24-s2025-c2e9cfd287ea.herokuapp.com', '127.0.0.1', '
 
 # Application definition
 
-SITE_ID = 4
+SITE_ID = 5
 
 INSTALLED_APPS = [
 #    'music.apps.MusicConfig',
