@@ -67,7 +67,7 @@
 
     <header class="header d-flex justify-content-between align-items-center shadow-sm">
         <h2 onClick="alert('TODO: go back to index')" class="m-0 fw-normal hover:cursor-pointer">Music Media Storefront</h2>
-        <a href="#" class="btn btn-light btn-custom">Login with Google</a>
+        <a href="{% url 'login' %}" class="btn btn-light btn-custom">Login with Google</a>
     </header>
 
     <div class="container mt-5">
@@ -86,11 +86,11 @@
                 </div>
             </div>
             <div class="col-md-9">
-                <!-- <h1 class="text-center text-uppercase fw-light text-dark mb-4">Music Media Storefront</h1> -->
                 <div class="row">
                     {% for item in items %}
                     <div class="col-md-4 mb-4">
                         <div class="card h-100">
+                            <img src="{{ item.image.url }}" class="card-img-top" alt="{{ item.title }}" onerror="this.style.display='none';">
                             <div class="card-body">
                                 <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }} - {{ item.status }}</h6>

@@ -20,13 +20,6 @@ def anonymous_front(request):
 
     return render(request, "music/anonymous_front.html", {"items":items, "collections":collections})
 
-# class anonymous_front(generic.ListView):
-#     template_name = "music/anonymous_front.html"
-#     context_object_name = "items" # TODO: implement Item model
-#
-#     def get_queryset(self):
-#         return Item.objects.all() # TODO: implement Item model
-
 def librarian_page(request, user_id):
     librarian = get_object_or_404(Librarian, pk=user_id)
     return render(request, "music/librarian.html", {
