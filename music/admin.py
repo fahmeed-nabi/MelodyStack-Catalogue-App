@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Item
+from . import models
 
 # Register your models here.
-admin.site.register(Item)
+admin.site.register([model for model in models.__dict__.values() if isinstance(model, type)])

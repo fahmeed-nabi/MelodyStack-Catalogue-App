@@ -37,6 +37,30 @@
         .card-footer {
             background-color: #ffffff;
         }
+        .sidebar {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .sidebar h4 {
+            margin-bottom: 20px;
+        }
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .sidebar ul li a {
+            text-decoration: none;
+            color: #2c3e50;
+            display: block;
+            padding: 5px 0;
+        }
+        .sidebar ul li a:hover {
+            background-color: #e9ecef;
+            display: block;
+            padding: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -47,25 +71,42 @@
     </header>
 
     <div class="container mt-5">
-        <h1 class="text-center text-uppercase fw-light text-dark mb-4">Music Media Storefront</h1>
         <div class="row">
-            {% for item in items %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
-                        <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.typeOfMedia }} - {{ item.musicGenre }}</h6>
-                        <p class="card-text text-secondary small">{{ item.description }}</p>
-                        <p class="card-text"><small class="text-muted">Posted on {{ item.postedDate }}</small></p>
-                    </div>
-                    <div class="card-footer text-center border-0">
-                        <a href="#" class="btn btn-primary btn-custom px-4 py-2">View Details</a>
-                    </div>
+            <div class="col-md-3">
+                <div class="sidebar">
+                    <h4>Filter by Collection</h4>
+                    <ul>
+                        {% for collection in collections %}
+                        <li>
+                            <a href="?collection={{ collection.id }}">{{ collection.title }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <a href="?collection=" class="btn btn-secondary btn-custom mt-3">Clear Filter</a>
                 </div>
             </div>
-            {% empty %}
-            <p class="text-center text-muted fs-5 mt-4">No items available at the moment.</p>
-            {% endfor %}
+            <div class="col-md-9">
+                <!-- <h1 class="text-center text-uppercase fw-light text-dark mb-4">Music Media Storefront</h1> -->
+                <div class="row">
+                    {% for item in items %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }} - {{ item.status }}</h6>
+                                <p class="card-text text-secondary small">{{ item.description }}</p>
+                                <p class="card-text"><small class="text-muted">Posted on {{ item.created_at }}</small></p>
+                            </div>
+                            <div class="card-footer text-center border-0">
+                                <a href="#" class="btn btn-primary btn-custom px-4 py-2">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted fs-5 mt-4">No items available at the moment.</p>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 
