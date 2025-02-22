@@ -21,7 +21,7 @@ class Item(models.Model):
 
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=255)
-    identifier = models.CharField(max_length=64, unique=True)
+    #identifier = models.CharField(max_length=64, unique=True, null=True)
     description = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='CHECKED_IN'
