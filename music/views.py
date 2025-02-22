@@ -55,7 +55,8 @@ def librarian_page(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
     return render(request, "music/librarian.html", {
-        'librarian' : librarian.user.email
+        'librarian_email' : librarian.user.email,
+        'librarian_first_name' : librarian.user.first_name
     })
 
 def logout_view(request):
@@ -66,5 +67,6 @@ def patron_page(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
     return render(request, "music/patron.html", {
-        'patron' : patron.user.email
+        'patron_email' : patron.user.email,
+        'patron_first_name' : patron.user.first_name
     })
