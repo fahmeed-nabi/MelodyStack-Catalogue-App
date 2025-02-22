@@ -55,7 +55,7 @@ class Patron(models.Model):
 
 
 class Collection(models.Model):
-    title = models.CharField(max_length=255)  # Title of the collection
+    title = models.CharField(max_length=255)  # Title of the collection (genre)
     description = models.TextField(blank=True, null=True)  # Optional
     public = models.BooleanField(default=True)  # Whether the collection is public or private
     private_users = models.ManyToManyField(
