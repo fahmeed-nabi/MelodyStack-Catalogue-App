@@ -13,5 +13,8 @@
 <div class="container p-5 my-5 border bg-white text-black">
     <h1 class="display-1">Patron Homepage</h1>
     
-    <h3 class="text-primary">Hello, {{patron.name}}</h3>
+    <h3 class="text-primary">Hello, {{patron}}</h3>
+    <a class="btn btn-primary w-100" href="{% url 'logout_view' %}">
+      Logout 
+   </a>
 </div>

@@ -64,10 +64,14 @@
     </style>
 </head>
 <body>
-
+    {% load socialaccount %}
     <header class="header d-flex justify-content-between align-items-center shadow-sm">
         <h2 onClick="alert('TODO: go back to index')" class="m-0 fw-normal hover:cursor-pointer">Music Media Storefront</h2>
+<<<<<<< HEAD
         <a href="{% url 'login' %}" class="btn btn-light btn-custom">Login with Google</a>
+=======
+        <a href="{% provider_login_url 'google' %}?next=/music/redir" class="btn btn-light btn-custom">Login with Google</a>
+>>>>>>> 0f78ed45767210f5f9298f527f8bb04e18c6ecab
     </header>
 
     <div class="container mt-5">

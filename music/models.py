@@ -1,4 +1,8 @@
 from django.db import models
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 # Create your models here.
 class Item(models.Model):
@@ -15,6 +19,7 @@ class Item(models.Model):
         ('CASSETTE', 'Cassette Tape')
     ]
 
+    id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=255)
     #identifier = models.CharField(max_length=64, unique=True, null=True)
     description = models.TextField(blank=True, null=True)
@@ -29,7 +34,7 @@ class Item(models.Model):
         upload_to='item_images/', blank=True, null=True
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True) 
 
     average_rating = models.FloatField(default=0.0)
 
@@ -38,14 +43,15 @@ class Item(models.Model):
 
 
 class Patron(models.Model):
-    user_id = models.CharField(primary_key=True, max_length=200)
+#    primary_key = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patron_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(height_field=100)
+    profile_picture = models.ImageField(height_field=100, default=None)
     date_joined = models.DateTimeField('date_joined')
 
     def __str__(self):
-        return self.user_id
+        return self.name
 
 
 class Collection(models.Model):
@@ -53,7 +59,7 @@ class Collection(models.Model):
     description = models.TextField(blank=True, null=True)  # Optional
     public = models.BooleanField(default=True)  # Whether the collection is public or private
     private_users = models.ManyToManyField(
-        'Patron', related_name='accessible_collections', blank=True
+        Patron, related_name='accessible_collections', blank=True,  
     )  # Patrons allowed to view private collections
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -64,7 +70,11 @@ class Collection(models.Model):
         """
         if self.public:
             return True
-        return user in self.private_users.all()
+        try:
+            patron = Patron.objects.get(user=user)
+            return self.private_users.filter(id=patron.id).exists()
+        except Patron.DoesNotExist:
+            return False
 
     def __str__(self):
         return self.title
@@ -94,14 +104,15 @@ class Comment(models.Model):
 
 
 class Librarian(models.Model):
-    user_id = models.CharField(primary_key=True, max_length=200)
+    primary_key = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="librarian_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(height_field=100)
+    profile_picture = models.ImageField(height_field=100, default=None)
     date_joined = models.DateTimeField('date_joined')
 
     def __str__(self):
-        return self.user_id
+        return self.name
 
 
 
