@@ -5,9 +5,9 @@ from django.views import generic
 from django.contrib.auth import get_user, logout
 from datetime import datetime
 
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 
-from .models import Item, Librarian, Patron
+from .models import Item, Librarian, Patron, Collection
 
 
 def login_page(request):
@@ -54,16 +54,40 @@ class AnonymousFrontView(ListView):
         Returns a queryset of items that anonymous users are allowed to see:
         - Items not in any collection
         - Items in public collections
+        - Optionally filtered by a specific collection
         """
-        # Query for items not in any collection
-        no_collection_items = Item.objects.filter(collections__isnull=True)
+        collection_id = self.request.GET.get('collection')
 
-        # Query for items in public collections
-        public_collection_items = Item.objects.filter(collections__public=True)
+        if collection_id:
+            # Filter items that are either in the selected public collection or not in any collection
+            no_collection_items = Item.objects.filter(collections__isnull=True)
+            public_collection_items = Item.objects.filter(collections__id=collection_id, collections__public=True)
+        else:
+            # Show all public items when no collection is selected
+            no_collection_items = Item.objects.filter(collections__isnull=True)
+            public_collection_items = Item.objects.filter(collections__public=True)
 
-        # Combine the two querysets using union (duplicates are excluded by default)
+        # Merge both queries using `union()`
         return no_collection_items.union(public_collection_items)
 
+    def get_context_data(self, **kwargs):
+        """
+        Adds available collections to the context for sidebar filtering.
+        """
+        context = super().get_context_data(**kwargs)
+        context['collections'] = Collection.objects.filter(public=True)
+        return context
+    
+class ItemDetailView(DetailView):
+    model = Item
+    template_name = "music/item_detail.html"
+    context_object_name = "item"
+
+    def get_object(self):
+        """
+        Fetches the item based on its primary key (id).
+        """
+        return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
 def librarian_page(request):
     curr_user = get_user(request)
