@@ -37,12 +37,21 @@
         .card-footer {
             background-color: #ffffff;
         }
+        .header-title {
+            text-decoration: none;
+            color: white;
+        }
+        .header-title:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     {% load socialaccount %}
     <header class="header d-flex justify-content-between align-items-center shadow-sm">
-        <h2 onClick="alert('TODO: go back to index')" class="m-0 fw-normal hover:cursor-pointer">Music Media Storefront</h2>
+        <h2 class="m-0 fw-normal">
+            <a href="/music/login/" class="header-title">Music Media Storefront</a>
+        </h2>
         <a href="{% provider_login_url 'google' %}?next=/music/redir" class="btn btn-light btn-custom">Login with Google</a>
     </header>
 

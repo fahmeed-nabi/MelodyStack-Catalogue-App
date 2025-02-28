@@ -8,7 +8,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('music', '0003_remove_item_identifier_item_id'),
+        # ('music', '0003_remove_item_identifier_item_id'),
     ]
 
     operations = [
