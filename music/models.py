@@ -38,6 +38,8 @@ class Item(models.Model):
 
     average_rating = models.FloatField(default=0.0)
 
+    tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
+
     def __str__(self):
         return self.title
 
@@ -49,6 +51,11 @@ class Patron(models.Model):
     google_account = models.CharField(max_length=200)
     profile_picture = models.ImageField(height_field=100, default=None)
     date_joined = models.DateTimeField('date_joined')
+
+    # Optional info
+    bio = models.CharField(max_length=250, blank=True)
+    birthday = models.DateField(blank=True, null=True)
+    
 
     def __str__(self):
         return self.name
