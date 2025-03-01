@@ -51,31 +51,33 @@ class AnonymousFrontView(ListView):
 
     def get_queryset(self):
         """
-        Returns a queryset of items that anonymous users are allowed to see:
-        - Items not in any collection
-        - Items in public collections
-        - Optionally filtered by a specific collection
+        Returns items based on the selected collection.
         """
-        collection_id = self.request.GET.get('collection')
-
+        collection_id = self.request.GET.get("collection")
+        
         if collection_id:
-            # Filter items that are either in the selected public collection or not in any collection
-            no_collection_items = Item.objects.filter(collections__isnull=True)
-            public_collection_items = Item.objects.filter(collections__id=collection_id, collections__public=True)
-        else:
-            # Show all public items when no collection is selected
-            no_collection_items = Item.objects.filter(collections__isnull=True)
-            public_collection_items = Item.objects.filter(collections__public=True)
-
-        # Merge both queries using `union()`
+            collection = get_object_or_404(Collection, id=collection_id)
+            return collection.items.all()
+        
+        # Default: show items from public collections and items without a collection
+        no_collection_items = Item.objects.filter(collections__isnull=True)
+        public_collection_items = Item.objects.filter(collections__public=True)
+        
         return no_collection_items.union(public_collection_items)
 
     def get_context_data(self, **kwargs):
         """
-        Adds available collections to the context for sidebar filtering.
+        Add all collections and the selected collection to the context.
         """
         context = super().get_context_data(**kwargs)
-        context['collections'] = Collection.objects.filter(public=True)
+        collection_id = self.request.GET.get("collection")
+        
+        context["collections"] = Collection.objects.all()
+        context["active_collection"] = None
+
+        if collection_id:
+            context["active_collection"] = get_object_or_404(Collection, id=collection_id)
+        
         return context
     
 class ItemDetailView(DetailView):
