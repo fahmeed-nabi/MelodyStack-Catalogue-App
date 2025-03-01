@@ -16,6 +16,27 @@
             color: white;
             padding: 15px;
         }
+        .sidebar {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar a {
+            display: block;
+            color: #2c3e50;
+            padding: 8px;
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+        .sidebar a.active {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .sidebar a:hover {
+            background-color: #f1f1f1;
+            border-radius: 5px;
+        }
         .btn-custom {
             border-radius: 20px;
             font-weight: 500;
@@ -56,25 +77,50 @@
     </header>
 
     <div class="container mt-5">
-        <h1 class="text-center text-uppercase fw-light text-dark mb-4">Music Media Storefront</h1>
+        <h1 class="text-center text-uppercase fw-light text-dark mb-4">
+            {% if active_collection %}
+                {{ active_collection.title }}
+            {% else %}
+                Music Media Storefront
+            {% endif %}
+        </h1>
+
         <div class="row">
-            {% for item in items %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
-                        <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.typeOfMedia }} - {{ item.musicGenre }}</h6>
-                        <p class="card-text text-secondary small">{{ item.description }}</p>
-                        <p class="card-text"><small class="text-muted">Posted on {{ item.postedDate }}</small></p>
-                    </div>
-                    <div class="card-footer text-center border-0">
-                        <a href="#" class="btn btn-primary btn-custom px-4 py-2">View Details</a>
-                    </div>
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="sidebar">
+                    <h5 class="fw-bold">Filter by Collection</h5>
+                    <a href="{% url 'public' %}" class="{% if not active_collection %}active{% endif %}">All Collections</a>
+                    {% for collection in collections %}
+                        <a href="?collection={{ collection.id }}" class="{% if active_collection and active_collection.id == collection.id %}active{% endif %}">
+                            {{ collection.title }}
+                        </a>
+                    {% endfor %}
                 </div>
             </div>
-            {% empty %}
-            <p class="text-center text-muted fs-5 mt-4">No items available at the moment.</p>
-            {% endfor %}
+
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="row">
+                    {% for item in items %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }} - {{ item.musicGenre }}</h6>
+                                <p class="card-text text-secondary small">{{ item.description }}</p>
+                                <p class="card-text"><small class="text-muted">Posted on {{ item.created_at }}</small></p>
+                            </div>
+                            <div class="card-footer text-center border-0">
+                                <a href="{% url 'item_detail' item.id %}" class="btn btn-primary btn-custom px-4 py-2">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted fs-5 mt-4">No items available in this collection.</p>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 
