@@ -1,0 +1,20 @@
+name: Run Music App Tests
+
+on:
+    push:
+        branches: [tests-for-actions]
+    pull_request:
+        branches: [tests-for-actions]
+
+jobs:
+    build: 
+        runs-on: ubuntu-latest
+    
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v3
+              with: 
+                python-version: 3.12.1
+            - run: python -m pip install --upgrade pip; pip install -r requirements.txt
+            - run: python manage.py test
+    
