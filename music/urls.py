@@ -12,3 +12,4 @@ urlpatterns = [
     path('patron/settings/', views.patron_settings_view, name='patron_settings'),
     path('librarian/settings/', views.librarian_settings_view, name='librarian_settings'),
 ]
+
