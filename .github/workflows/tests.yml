@@ -1,8 +1,6 @@
 name: Run Music App Tests
 
 on:
-    push:
-        branches: [tests-for-actions]
     pull_request:
         branches: [tests-for-actions]
     workflow_call:
