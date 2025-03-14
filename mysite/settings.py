@@ -56,10 +56,10 @@ SOCIALACCOUNT_PROVIDERS = {
             "email"
         ],
         "AUTH_PARAMS": {"access_type": "online"},
-        'APP': {
-            'client_id': '960859184516-6coh0h44198sa6ott2est85osd36mkuu.apps.googleusercontent.com',
-            'secret': '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',
-        },
+        # 'APP': {
+        #     'client_id': '960859184516-6coh0h44198sa6ott2est85osd36mkuu.apps.googleusercontent.com',
+        #     'secret': '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',
+        # },
     }
 }
 
