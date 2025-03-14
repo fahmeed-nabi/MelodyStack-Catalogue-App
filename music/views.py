@@ -5,51 +5,91 @@ from django.views import generic
 from django.contrib.auth import get_user, logout
 from datetime import datetime
 
-from .models import Item, Librarian, Patron
+from django.views.generic import ListView, DetailView
+
+from .models import Item, Librarian, Patron, Collection
+
 
 def login_page(request):
     curr_user = get_user(request)
-    if(curr_user.is_anonymous):
+    if (curr_user.is_anonymous):
         return render(request, "music/login_page.html")
-    
+
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
-    
-    if(librarians.exists()):
+
+    if (librarians.exists()):
         return redirect("librarian")
-    elif(patrons.exists()):
+    elif (patrons.exists()):
         return redirect("patron")
     else:
         return render(request, "music/login_page.html")
+
 
 def redir(request):
     curr_user = get_user(request)
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
-    
-    if(librarians.exists()):
+
+    if (librarians.exists()):
         return redirect("librarian")
-    elif(patrons.exists()):
+    elif (patrons.exists()):
         return redirect("patron")
     else:
         new_patron = Patron.objects.create(
-            user = curr_user,
-            name = curr_user.email,
-            google_account = curr_user.email,
-            date_joined = datetime.now()
+            user=curr_user,
+            name=curr_user.email,
+            google_account=curr_user.email,
+            date_joined=datetime.now()
         )
         return redirect("patron")
-       
 
-def anonymous_front(request):
-    return render(request, "music/anonymous_front.html")
 
-# class anonymous_front(generic.ListView):
-#     template_name = "music/anonymous_front.html"
-#     context_object_name = "items" # TODO: implement Item model
-#
-#     def get_queryset(self):
-#         return Item.objects.all() # TODO: implement Item model
+class AnonymousFrontView(ListView):
+    template_name = "music/anonymous_front.html"
+    context_object_name = "items"
+
+    def get_queryset(self):
+        """
+        Returns items based on the selected collection.
+        """
+        collection_id = self.request.GET.get("collection")
+        
+        if collection_id:
+            collection = get_object_or_404(Collection, id=collection_id)
+            return collection.items.all()
+        
+        # Default: show items from public collections and items without a collection
+        no_collection_items = Item.objects.filter(collections__isnull=True)
+        public_collection_items = Item.objects.filter(collections__public=True)
+        
+        return no_collection_items.union(public_collection_items)
+
+    def get_context_data(self, **kwargs):
+        """
+        Add all collections and the selected collection to the context.
+        """
+        context = super().get_context_data(**kwargs)
+        collection_id = self.request.GET.get("collection")
+        
+        context["collections"] = Collection.objects.all()
+        context["active_collection"] = None
+
+        if collection_id:
+            context["active_collection"] = get_object_or_404(Collection, id=collection_id)
+        
+        return context
+    
+class ItemDetailView(DetailView):
+    model = Item
+    template_name = "music/item_detail.html"
+    context_object_name = "item"
+
+    def get_object(self):
+        """
+        Fetches the item based on its primary key (id).
+        """
+        return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
 def librarian_page(request):
     curr_user = get_user(request)
@@ -59,9 +99,11 @@ def librarian_page(request):
         'librarian_first_name' : librarian.user.first_name
     })
 
+
 def logout_view(request):
     logout(request)
     return redirect("login")
+
 
 def patron_page(request):
     curr_user = get_user(request)
