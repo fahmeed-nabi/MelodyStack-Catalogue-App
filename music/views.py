@@ -127,7 +127,7 @@ def patron_settings_view(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, 'os.environ.get('BUCKET_NAME')')
+    file_url = aws.generate_url(patron.profile_picture.name, 'b-24-music')
 
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=patron)
@@ -163,7 +163,7 @@ def librarian_settings_view(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, 'os.environ.get('BUCKET_NAME')')
+    file_url = aws.generate_url(librarian.profile_picture.name, 'b-24-music')
 
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=librarian)
