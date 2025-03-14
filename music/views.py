@@ -7,6 +7,7 @@ from datetime import datetime
 from django.views.generic import ListView, DetailView
 from .models import Item, Librarian, Patron, Collection
 from .forms import SettingsForm
+import music.utils
 
 def login_page(request):
     curr_user = get_user(request)

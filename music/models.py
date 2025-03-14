@@ -21,17 +21,16 @@ class Item(models.Model):
 
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=255)
-    #identifier = models.CharField(max_length=64, unique=True, null=True)
     description = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='CHECKED_IN'
     )
-    location = models.CharField(max_length=255, blank=True, null=True)
+    location = models.CharField(max_length=255, default="Home Library", blank=True, null=True)
     media_type = models.CharField(
         max_length=20, choices=MEDIA_TYPE_CHOICES, default='OTHER',
     )
     image = models.ImageField(
-        upload_to='item_images/', blank=True, null=True
+        default='default.jpg', upload_to='item_images', blank=True, null=True
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -59,6 +58,9 @@ class Patron(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_user_type(self):
+        return 'Patron'
 
 
 class Collection(models.Model):
@@ -107,7 +109,7 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Comment by {self.patron.user_id} on {self.item.title}"
+        return f"Comment by {self.patron.name} on {self.item.title}"
 
 
 class Librarian(models.Model):
@@ -124,6 +126,9 @@ class Librarian(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_user_type(self):
+        return 'Librarian'
 
 
 

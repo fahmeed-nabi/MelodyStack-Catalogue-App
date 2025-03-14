@@ -11,7 +11,7 @@
       <div class="card shadow-lg p-4 text-center">
         <div class="card-body">
           <!-- Profile Picture -->
-          <img src="{% if patron_profile_picture %}{{ patron_profile_picture.url }}{% else %}{{ MEDIA_URL }}https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg{% endif %}" class="rounded-circle mb-3" alt="{{ patron_first_name }}'s Profile Picture" width="120" height="120">
+          <img src="{% if patron_profile_picture %}{{ patron_profile_picture.url }}{% else %}https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg{% endif %}" class="rounded-circle mb-3" alt="{{ patron_first_name }}'s Profile Picture" width="120" height="120">
 
           <h1 class="display-4">Welcome, {{ patron_first_name }}!</h1>
           <h3 class="text-primary">You are a Patron</h3>
@@ -33,15 +33,22 @@
             <a href="{% url 'patron_settings' %}" class="btn btn-outline-secondary">⚙️ Settings</a>
             <a href="{% url 'logout_view' %}" class="btn btn-danger">🚪 Logout</a>
           </div>
+
+          <!-- New Grouped Buttons Section -->
+          <div class="mt-4">
+            <div class="btn-group d-flex flex-wrap justify-content-center" role="group">
+              <a href="#" class="btn btn-outline-info">📝 View My Reviews</a>
+              <a href="#" class="btn btn-outline-warning">⭐ View Saved Items</a>
+              <a href="#" class="btn btn-outline-success">📖 View Borrowed Items</a>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <!-- Placeholder Notifications -->
       <div class="alert alert-info mt-4" role="alert">
         Collections page is under construction!
-      </div>
-      <div class="alert alert-warning" role="alert">
-        Settings page is coming soon!
       </div>
     </div>
 
