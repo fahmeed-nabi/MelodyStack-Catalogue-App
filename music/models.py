@@ -71,6 +71,8 @@ class Collection(models.Model):
         Patron, related_name='accessible_collections', blank=True,  
     )  # Patrons allowed to view private collections
 
+    image = models.ImageField(default='collection_default.jpg', upload_to='collection_images', blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_accessible_by(self, user):

@@ -24,8 +24,8 @@ def upload_file(filename, bucket, object_name=None):
     client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'))
     try:
         client.upload_file(filename, bucket, object_name)
-    except:
-        print(f"file at {filename} was not successfully uploaded")
+    except Exception as e:
+        print(f"file at {filename} was not successfully uploaded {e}")
         return False
     return True
 
