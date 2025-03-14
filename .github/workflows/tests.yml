@@ -5,6 +5,7 @@ on:
         branches: [tests-for-actions]
     pull_request:
         branches: [tests-for-actions]
+    workflow_call:
 
 jobs:
     test: 
