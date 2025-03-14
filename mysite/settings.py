@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
+load_dotenv("env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -184,10 +185,9 @@ SOCIALACCOUNT_ADAPTER = "music.adapters.MySocialAccountAdapter"
 ACCOUNT_ADAPTER = "music.adapters.MyAccountAdapter"
 
 # AWS S3 Configuration
-os.environ.get('AWS_ID') = 'os.environ.get('AWS_ID')'
-os.environ.get('AWS_KEY') = 'os.environ.get('AWS_KEY')'
-os.environ.get('BUCKET_NAME') = 'os.environ.get('BUCKET_NAME')'
-AWS_S3_REGION_NAME = "us-east-2"
+os.environ.get('AWS_ID') = os.getenv('AWS_ID')
+os.environ.get('AWS_KEY') = os.getenv('AWS_KEY')
+os.environ.get('BUCKET_NAME') = os.getenv('BUCKET_NAME')
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 STORAGES = {

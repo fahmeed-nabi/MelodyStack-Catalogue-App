@@ -5,6 +5,8 @@ from django.views import generic
 from django.contrib.auth import get_user, logout
 from datetime import datetime
 from django.views.generic import ListView, DetailView
+
+from . import aws
 from .models import Item, Librarian, Patron, Collection
 from .forms import SettingsForm
 import music.utils
@@ -124,6 +126,9 @@ def patron_page(request):
 def patron_settings_view(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
+
+    file_url = aws.generate_url(patron.profile_picture.name, 'os.environ.get('BUCKET_NAME')')
+
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=patron)
         if form.is_valid():
@@ -134,6 +139,7 @@ def patron_settings_view(request):
                               'form': form,
                               'patron_first_name': patron.user.first_name,
                               'patron_profile_picture': patron.profile_picture,
+                              'patron_profile_picture2': file_url,
                               'patron_bio': patron.bio,
                               'patron_birthday': patron.birthday,
                               'success_message': success_message,
@@ -156,6 +162,9 @@ def patron_settings_view(request):
 def librarian_settings_view(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
+
+    file_url = aws.generate_url(librarian.profile_picture.name, 'os.environ.get('BUCKET_NAME')')
+
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=librarian)
         if form.is_valid():
@@ -166,6 +175,7 @@ def librarian_settings_view(request):
                               'form': form,
                               'librarian_first_name': librarian.user.first_name,
                               'librarian_profile_picture': librarian.profile_picture,
+                              'librarian_profile_picture2': file_url,
                               'librarian_bio': librarian.bio,
                               'librarian_birthday': librarian.birthday,
                               'librarian_message': success_message,

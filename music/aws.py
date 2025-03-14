@@ -1,7 +1,7 @@
 import os, boto3
 from dotenv import load_dotenv
 from botocore.client import Config
-load_dotenv()
+load_dotenv("env")
 
 def upload_file(filename, bucket, object_name=None):
     '''
