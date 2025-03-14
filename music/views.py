@@ -4,11 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.views import generic
 from django.contrib.auth import get_user, logout
 from datetime import datetime
-
 from django.views.generic import ListView, DetailView
-
 from .models import Item, Librarian, Patron, Collection
-
+from .forms import SettingsForm
 
 def login_page(request):
     curr_user = get_user(request)
@@ -91,12 +89,16 @@ class ItemDetailView(DetailView):
         """
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
+@login_required
 def librarian_page(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
     return render(request, "music/librarian.html", {
         'librarian_email' : librarian.user.email,
-        'librarian_first_name' : librarian.user.first_name
+        'librarian_first_name' : librarian.user.first_name,
+        'librarian_profile_picture' : librarian.profile_picture,
+        'librarian_date_joined' : librarian.date_joined.strftime("%B %d, %Y"),
+        'librarian_bio' : librarian.bio,
     })
 
 
@@ -104,11 +106,78 @@ def logout_view(request):
     logout(request)
     return redirect("login")
 
-
+@login_required
 def patron_page(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
     return render(request, "music/patron.html", {
         'patron_email' : patron.user.email,
-        'patron_first_name' : patron.user.first_name
+        'patron_first_name' : patron.user.first_name,
+        'patron_profile_picture' : patron.profile_picture,
+        'patron_date_joined' : patron.date_joined.strftime("%B %d, %Y"),
+        'patron_bio' : patron.bio,
+    })
+
+
+@login_required
+def patron_settings_view(request):
+    curr_user = get_user(request)
+    patron = Patron.objects.filter(user=curr_user).first()
+    if request.method == 'POST':
+        form = SettingsForm(request.POST, request.FILES, instance=patron)
+        if form.is_valid():
+            form.save()
+            success_message = "Changes saved successfully!"  # Set the success message
+            return render(request, 'music/patron_settings.html',
+                          {
+                              'form': form,
+                              'patron_first_name': patron.user.first_name,
+                              'patron_profile_picture': patron.profile_picture,
+                              'patron_bio': patron.bio,
+                              'patron_birthday': patron.birthday,
+                              'success_message': success_message,
+                          })
+        else:
+            print(form.errors)
+    else:
+        form = SettingsForm(instance=request.user)
+
+    return render(request, 'music/patron_settings.html', {
+        'form' : form,
+        'patron_first_name' : patron.user.first_name,
+        'patron_profile_picture' : patron.profile_picture,
+        'patron_bio' : patron.bio,
+        'patron_birthday' : patron.birthday,
+    })
+
+
+@login_required
+def librarian_settings_view(request):
+    curr_user = get_user(request)
+    librarian = Librarian.objects.filter(user=curr_user).first()
+    if request.method == 'POST':
+        form = SettingsForm(request.POST, request.FILES, instance=librarian)
+        if form.is_valid():
+            form.save()
+            success_message = "Changes saved successfully!"  # Set the success message
+            return render(request, 'music/librarian_settings.html',
+                          {
+                              'form': form,
+                              'librarian_first_name': librarian.user.first_name,
+                              'librarian_profile_picture': librarian.profile_picture,
+                              'librarian_bio': librarian.bio,
+                              'librarian_birthday': librarian.birthday,
+                              'librarian_message': success_message,
+                          })
+        else:
+            print(form.errors)
+    else:
+        form = SettingsForm(instance=request.user)
+
+    return render(request, 'music/librarian_settings.html', {
+        'form' : form,
+        'librarian_first_name' : librarian.user.first_name,
+        'librarian_profile_picture' : librarian.profile_picture,
+        'librarian_bio' : librarian.bio,
+        'librarian_birthday' : librarian.birthday,
     })

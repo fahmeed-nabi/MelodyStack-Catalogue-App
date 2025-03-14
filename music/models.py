@@ -49,7 +49,7 @@ class Patron(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patron_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(height_field=100, default=None)
+    profile_picture = models.ImageField(default='default.jpg', upload_to='profile_pics', blank=True)
     date_joined = models.DateTimeField('date_joined')
 
     # Optional info
@@ -115,8 +115,12 @@ class Librarian(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="librarian_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(height_field=100, default=None)
+    profile_picture = models.ImageField(default='default.jpg', upload_to='profile_pics', blank=True)
     date_joined = models.DateTimeField('date_joined')
+
+    # Optional info
+    bio = models.CharField(max_length=250, blank=True)
+    birthday = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return self.name

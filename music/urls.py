@@ -9,4 +9,6 @@ urlpatterns = [
     path('patron/', views.patron_page, name='patron'),
     path('redir', views.redir, name="redir"),
     path("logout", views.logout_view, name="logout_view"),
+    path('patron/settings/', views.patron_settings_view, name='patron_settings'),
+    path('librarian/settings/', views.librarian_settings_view, name='librarian_settings'),
 ]
