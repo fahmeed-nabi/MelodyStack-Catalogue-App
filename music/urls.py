@@ -12,5 +12,8 @@ urlpatterns = [
     path('patron/settings/', views.patron_settings_view, name='patron_settings'),
     path('librarian/settings/', views.librarian_settings_view, name='librarian_settings'),
     path('librarian/create_collection_item/', views.create_collection_item, name='create_collection_item'),
+    path('librarian/manage_collections/', views.manage_collections, name='manage_collections'),
+    path('edit_collection/<slug:title>/', views.edit_collection, name='edit_collection'),
+    path('delete_collection/<slug:title>/', views.delete_collection, name='delete_collection'),
 ]
 

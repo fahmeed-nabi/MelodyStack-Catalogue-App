@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.urls import reverse
@@ -35,9 +36,9 @@ def redir(request):
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
 
-    if (librarians.exists()):
+    if librarians.exists():
         return redirect("librarian")
-    elif (patrons.exists()):
+    elif patrons.exists():
         return redirect("patron")
     else:
         new_patron = Patron.objects.create(
@@ -261,13 +262,6 @@ def librarian_settings_view(request):
         'librarian_birthday': librarian.birthday,
     })
 
-
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from .forms import CollectionForm, ItemForm
-from .models import Collection, Patron, Item
-
 @login_required
 def create_collection_item(request):
     if request.method == 'POST':
@@ -281,7 +275,6 @@ def create_collection_item(request):
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
-                    messages.success(request, "Collection created successfully!")
                     return redirect('collections')
             else:
                 messages.error(request, "There was an error creating the collection. Please check the form.")
@@ -301,7 +294,6 @@ def create_collection_item(request):
         collection_form = CollectionForm()
         item_form = ItemForm()
 
-    # Pass the forms and other context data to the template
     context = {
         'collection_form': collection_form,
         'item_form': item_form,
@@ -311,3 +303,66 @@ def create_collection_item(request):
         'status': Item.STATUS_CHOICES,
     }
     return render(request, 'music/create_collection_item.html', context)
+
+
+def manage_collections(request):
+    """
+    View to display all collections for management.
+    """
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    collections = Collection.objects.all()
+    return render(request, "music/manage_collections.html", {"collections": collections})
+
+
+def edit_collection(request, title):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    # Convert slugified title back to its original form
+    original_title = title.replace('-', ' ')
+
+    collection = get_object_or_404(Collection, Q(title__iexact=original_title))
+
+    if request.method == "POST":
+        new_title = request.POST.get("title")
+        description = request.POST.get("description")
+
+        if new_title:
+            collection.title = new_title
+            collection.description = description
+            collection.save()
+            return redirect('manage_collections')
+
+    return render(request, 'music/edit_collection.html', {'collection': collection})
+
+
+def delete_collection(request, title):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    # Convert slugified title back to its original form
+    original_title = title.replace('-', ' ')
+    collection = get_object_or_404(Collection, Q(title__iexact=original_title))
+
+    if request.method == "POST":
+        collection.delete()
+        return redirect('manage_collections')
+
+    return render(request, 'music/delete_collection.html', {'collection': collection})

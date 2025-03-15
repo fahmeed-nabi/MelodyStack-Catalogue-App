@@ -87,6 +87,11 @@ class Collection(models.Model):
         except Patron.DoesNotExist:
             return False
 
+    # Delete all items associated with this collection
+    def delete(self, *args, **kwargs):
+        self.items.all().delete()
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.title
 
