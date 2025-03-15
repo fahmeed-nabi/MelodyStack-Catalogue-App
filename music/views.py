@@ -12,8 +12,7 @@ from .models import Item, Librarian, Patron, Collection
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm
 from . import utils
 from .utils import get_user_type, get_accessible_collections
-
-AWS_BUCKET_NAME = 'os.environ.get('BUCKET_NAME')'
+from mysite.settings import os.environ.get('BUCKET_NAME')
 
 def login_page(request):
     curr_user = get_user(request)
@@ -75,7 +74,7 @@ class CollectionsFrontView(ListView):
             # Attach file URLs
             for item in items:
                 if item.image:
-                    item.file_url = aws.generate_url(item.image.name, AWS_BUCKET_NAME)
+                    item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
 
             return items  # Return early when filtering by collection
 
@@ -95,7 +94,7 @@ class CollectionsFrontView(ListView):
         # Attach file URLs
         for item in items:
             if item.image:
-                item.file_url = aws.generate_url(item.image.name, AWS_BUCKET_NAME)
+                item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
 
         return items
 
@@ -120,7 +119,7 @@ class CollectionsFrontView(ListView):
         if collection_id:
             context["active_collection"] = get_object_or_404(Collection, id=collection_id)
 
-        context["user_type"] = user_type  # Add user_type to context for use in the template
+        context["user_type"] = user_type
 
         return context
 
@@ -136,12 +135,28 @@ class ItemDetailView(DetailView):
         """
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
+    def get_context_data(self, **kwargs):
+        """
+        Add item data
+        """
+        context = super().get_context_data(**kwargs)
+        item = self.get_object()
+
+        if item.image:
+            # Call your custom function to generate the URL
+            file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
+            context['file_url'] = file_url
+        else:
+            context['file_url'] = None
+
+        return context
+
 @login_required
 def librarian_page(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     return render(request, "music/librarian.html", {
         'librarian_email' : librarian.user.email,
@@ -162,7 +177,7 @@ def patron_page(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     return render(request, "music/patron.html", {
         'patron_email' : patron.user.email,
@@ -179,7 +194,7 @@ def patron_settings_view(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=patron)
@@ -216,7 +231,7 @@ def librarian_settings_view(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     if request.method == 'POST':
         form = LibrarianSettingsForm(request.POST, request.FILES, instance=librarian)
