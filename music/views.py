@@ -201,6 +201,7 @@ def patron_settings_view(request):
         if form.is_valid():
             form.save()
             success_message = "Changes saved successfully!"  # Set the success message
+            file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
             return render(request, 'music/patron_settings.html',
                           {
                               'form': form,
@@ -238,6 +239,7 @@ def librarian_settings_view(request):
         if form.is_valid():
             form.save()
             success_message = "Changes saved successfully!"
+            file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
             return render(request, 'music/librarian_settings.html',
                           {
                               'form': form,
