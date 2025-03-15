@@ -50,6 +50,7 @@ class Patron(models.Model):
     google_account = models.CharField(max_length=200)
     profile_picture = models.ImageField(default='default.jpg', upload_to='profile_pics', blank=True)
     date_joined = models.DateTimeField('date_joined')
+    saved_items = models.ManyToManyField(Item, related_name='saved_items', blank=True)
 
     # Optional info
     bio = models.CharField(max_length=250, blank=True)
