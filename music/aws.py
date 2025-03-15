@@ -1,4 +1,7 @@
 import os, boto3
+from dotenv import load_dotenv
+from botocore.client import Config
+load_dotenv("env")
 
 def upload_file(filename, bucket, object_name=None):
     '''
@@ -17,15 +20,13 @@ def upload_file(filename, bucket, object_name=None):
     boolean
         True if successful, False otherwise
     '''
-    from dotenv import load_dotenv
-    load_dotenv()
     if object_name is None:
         object_name = os.path.basename(filename)
     client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'))
     try:
         client.upload_file(filename, bucket, object_name)
-    except:
-        print(f"file at {filename} was not successfully uploaded")
+    except Exception as e:
+        print(f"file at {filename} was not successfully uploaded {e}")
         return False
     return True
 
@@ -46,8 +47,6 @@ def download_file(filename, bucketname, dir):
     boolean
         True if successful, False otherwise
     '''
-    from dotenv import load_dotenv
-    load_dotenv()
     client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'))
     try:
         client.download_file(bucketname, filename, dir)
@@ -56,3 +55,11 @@ def download_file(filename, bucketname, dir):
         print(f"failed to download {filename} from {bucketname} to {dir}")
         return False
     return True 
+
+def generate_url(filename, bucketname):
+    client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'), config=Config(
+            signature_version="s3v4",
+            region_name="us-east-2",
+        ))
+    url = client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket' : bucketname, 'Key' : filename}, ExpiresIn=120)
+    return url
