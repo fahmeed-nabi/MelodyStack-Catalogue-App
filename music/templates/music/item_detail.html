@@ -58,7 +58,7 @@
                 <p><strong>Status:</strong> {{ item.get_status_display }}</p>
                 <p><strong>Location:</strong> {{ item.location }}</p>
                 <p><strong>Average Rating:</strong> {{ item.average_rating }}/5</p>
-                <p><strong>Posted on:</strong> {{ item.created_at }}</p>
+                <p><strong>Posted on:</strong> {{ item.created_at|date:"F j, Y" }}</p>
 
                 <a href="javascript:history.back()" class="btn btn-primary btn-custom mt-3">Back to Collection</a>
             </div>

@@ -74,6 +74,15 @@
     <div class="container mt-5">
         <h2 class="mb-4">Create a New Collection and Item</h2>
 
+        <!-- Success Message -->
+        {% if messages %}
+            <div class="alert alert-success">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <!-- Tabs for Collection and Item -->
         <ul class="nav nav-pills mb-3" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
@@ -95,19 +104,27 @@
                     <div class="mb-3">
                         {{ collection_form.as_p }}
                     </div>
+                    <!-- Collection Submit Button -->
+                    <button type="submit" name="submit_collection" class="btn btn-primary btn-custom mt-4">Create Collection</button>
                 </div>
+            </div>
+        </form>
 
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="myTabContent">
                 <!-- Item Form -->
                 <div class="tab-pane fade" id="item" role="tabpanel" aria-labelledby="item-tab">
                     <h4>Create Item</h4>
                     <div class="mb-3">
                         {{ item_form.as_p }}
                     </div>
+                    <!-- Item Submit Button -->
+                    <button type="submit" name="submit_item" class="btn btn-primary btn-custom mt-4">Create Item</button>
                 </div>
             </div>
-
-            <!-- Submit Button -->
-            <button type="submit" class="btn btn-primary btn-custom mt-4">Create Collection/Item</button>
         </form>
     </div>
 

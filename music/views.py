@@ -57,28 +57,26 @@ class AnonymousFrontView(ListView):
         """
         Returns items based on the selected collection, with privacy checks.
         """
-        # Get the collection id from the GET request
         collection_id = self.request.GET.get("collection")
-
-        # Get the current user
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
 
-        items = []
-
-        # If a collection ID is specified in the GET request, return items from that collection
         if collection_id:
             collection = get_object_or_404(Collection, id=collection_id)
-            # Only show all private collections if a Librarian
-            if collection.public or user_type == 'Librarian':
-                items = collection.items.all()
-            # Conditionally allow Patrons to see private collections
-            elif user_type == 'Patron' and collection.is_accessible_by(curr_user):
-                items = collection.items.all()
 
-            # If the collection is private and the user is Anonymous, return empty queryset
-            if not items:
-                return Item.objects.none()
+            # Librarians can see all collections, Patrons can see accessible ones
+            if collection.public or user_type == 'Librarian' or (
+                    user_type == 'Patron' and collection.is_accessible_by(curr_user)):
+                items = collection.items.all()
+            else:
+                return Item.objects.none()  # Return empty queryset for unauthorized access
+
+            # Attach file URLs
+            for item in items:
+                if item.image:
+                    item.file_url = aws.generate_url(item.image.name, AWS_BUCKET_NAME)
+
+            return items  # Return early when filtering by collection
 
         # Default: show all items that the user has access to
         if user_type == 'Librarian':
@@ -88,15 +86,15 @@ class AnonymousFrontView(ListView):
             accessible_collections = get_accessible_collections(curr_user)
             accessible_items = Item.objects.filter(collections__in=accessible_collections)
             items = accessible_items.union(no_collection_items)
-        else:  # For Anonymous users
+        else:  # Anonymous users
             no_collection_items = Item.objects.filter(collections__isnull=True)
             public_collection_items = Item.objects.filter(collections__public=True)
             items = no_collection_items.union(public_collection_items)
 
-        # Add the file_url for each item to the queryset (using the aws.generate_url function)
+        # Attach file URLs
         for item in items:
             if item.image:
-                item.file_url = aws.generate_url(item.image.name, AWS_BUCKET_NAME)  # Adjust this as needed
+                item.file_url = aws.generate_url(item.image.name, AWS_BUCKET_NAME)
 
         return items
 
@@ -251,35 +249,25 @@ def librarian_settings_view(request):
 
 @login_required
 def create_collection_item(request):
-    """
-    View for creating new collections and items (accessible only by Librarians).
-    """
-    curr_user = get_user(request)
-    user_type = get_user_type(curr_user)
-
-    # Redirect if the user is not a Librarian
-    if user_type == 'Anonymous':
-        return redirect('login')
-    elif user_type == 'Patron':
-        return redirect('patron')
-
-    collection_form = CollectionForm()
-    item_form = ItemForm()
-
     if request.method == 'POST':
         collection_form = CollectionForm(request.POST)
         item_form = ItemForm(request.POST, request.FILES)
 
-        if collection_form.is_valid() and item_form.is_valid():
-            # Save the collection and item
-            collection = collection_form.save()
-            item = item_form.save(commit=False)
-            item.collection = collection
-            item.save()
+        if collection_form.is_valid() and not item_form.is_valid():
+            # Handle the case where only the collection is filled out
+            collection_form.save()
+            return redirect('collections')  # Redirect to collections page
 
-            return redirect('some_success_page')  # Redirect to a success page or collection detail page
+        if item_form.is_valid() and collection_form.is_valid():
+            # Handle the case where only the item is filled out
+            item_form.save()
+            return redirect('collections')  # Redirect to collections page
+
+    else:
+        collection_form = CollectionForm()
+        item_form = ItemForm()
 
     return render(request, 'music/create_collection_item.html', {
         'collection_form': collection_form,
-        'item_form': item_form
+        'item_form': item_form,
     })
