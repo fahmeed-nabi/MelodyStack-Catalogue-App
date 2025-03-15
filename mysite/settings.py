@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 import dj_database_url
+from dotenv import load_dotenv
+load_dotenv("env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -47,6 +49,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'storages'
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -55,7 +58,11 @@ SOCIALACCOUNT_PROVIDERS = {
             "profile",
             "email"
         ],
-        "AUTH_PARAMS": {"access_type": "online"}
+        "AUTH_PARAMS": {"access_type": "online"},
+        'APP': {
+            'client_id': '960859184516-6coh0h44198sa6ott2est85osd36mkuu.apps.googleusercontent.com',
+            'secret': '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',
+        },
     }
 }
 
@@ -155,6 +162,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
+# Serve media locally during development
+# MEDIA_URL = "/media/"
+# MEDIA_ROOT = os.path.join(BASE_DIR, "music/media")
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTHENTICATION_BACKENDS = {
@@ -172,3 +183,24 @@ ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_REDIRECT_URL = "/"
 SOCIALACCOUNT_ADAPTER = "music.adapters.MySocialAccountAdapter"
 ACCOUNT_ADAPTER = "music.adapters.MyAccountAdapter"
+
+# AWS S3 Configuration
+os.environ.get('AWS_ID') = os.getenv('AWS_ID')
+os.environ.get('AWS_KEY') = os.getenv('AWS_KEY')
+os.environ.get('BUCKET_NAME') = os.getenv('BUCKET_NAME')
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": 'os.environ.get('BUCKET_NAME')',
+        },
+    },
+
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "OPTIONS": {
+        }
+    }
+}
