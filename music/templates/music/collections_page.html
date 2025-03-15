@@ -16,6 +16,7 @@
         }
         .container {
             flex-grow: 1;
+            max-width: 95%; /* Reduced margin width */
         }
         footer {
             margin-top: auto;
@@ -56,6 +57,7 @@
             color: white;
         }
         .card {
+            position: relative;
             border-radius: 15px;
             overflow: hidden;
             transition: transform 0.3s ease-in-out;
@@ -73,6 +75,57 @@
         }
         .header-title:hover {
             text-decoration: underline;
+        }
+        .collection-description {
+            background-color: #ffffff;
+            border: 1px solid #e3e3e3;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 1rem;
+            color: #333333;
+        }
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+        .status-checked-in {
+            background-color: green;
+        }
+        .status-in-circulation {
+            background-color: red;
+        }
+        .status-being-repaired {
+            background-color: gray;
+        }
+        .legend {
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        .legend-circle {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .legend-checked-in {
+            background-color: green;
+        }
+        .legend-in-circulation {
+            background-color: red;
+        }
+        .legend-being-repaired {
+            background-color: gray;
         }
     </style>
 </head>
@@ -99,7 +152,13 @@
             {% endif %}
         </h1>
 
-        <div class="row">
+        {% if active_collection and active_collection.description %}
+        <div class="collection-description text-center">
+            <p class="m-0">{{ active_collection.description }}</p>
+        </div>
+        {% endif %}
+
+        <div class="row mt-4">
             <div class="col-md-3">
                 <div class="sidebar">
                     <h5 class="fw-bold">Filter by Collection</h5>
@@ -120,11 +179,16 @@
                 {% endif %}
             </div>
 
-            <div class="col-md-9">
+            <div class="col-md-7">
                 <div class="row">
                     {% for item in items %}
                     <div class="col-md-4 mb-4">
                         <div class="card h-100">
+                            <div class="status-indicator
+                                {% if item.status == 'CHECKED_IN' %}status-checked-in{% endif %}
+                                {% if item.status == 'IN_CIRCULATION' %}status-in-circulation{% endif %}
+                                {% if item.status == 'BEING_REPAIRED' %}status-being-repaired{% endif %}">
+                            </div>
                             <div class="card-body">
                                 <img src="{% if item.file_url %}{{ item.file_url }}{% else %}https://cdn4.iconfinder.com/data/icons/public-sign-part03/100/_-14-512.png{% endif %}" alt="{{ item.title }}" class="card-img-top mb-3" style="height: 200px; object-fit: cover;">
                                 <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
@@ -140,6 +204,15 @@
                     {% empty %}
                     <p class="text-center text-muted fs-5 mt-4">No items available in this collection.</p>
                     {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <div class="legend">
+                    <h6 class="fw-bold">Status Legend</h6>
+                    <p><span class="legend-circle legend-checked-in"></span> Checked In</p>
+                    <p><span class="legend-circle legend-in-circulation"></span> In Circulation</p>
+                    <p><span class="legend-circle legend-being-repaired"></span> Being Repaired</p>
                 </div>
             </div>
         </div>

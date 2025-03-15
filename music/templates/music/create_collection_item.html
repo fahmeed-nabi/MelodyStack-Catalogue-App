@@ -179,22 +179,29 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/js/select2.min.js"></script>
     <script>
-        $('.select2').select2();
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize counters for all fields on page load
+            initializeCharCount("collection-title", "collection-title-char-count", 100);
+            initializeCharCount("collection-description", "collection-description-char-count", 500);
+            initializeCharCount("item-title", "item-title-char-count", 100);
+            initializeCharCount("item-description", "item-description-char-count", 500);
+        });
 
-        // Character count for title and description fields
-        function updateCharCount(inputId, counterId, maxLength) {
+        // Function to update character count dynamically
+        function initializeCharCount(inputId, counterId, maxLength) {
             const input = document.getElementById(inputId);
             const counter = document.getElementById(counterId);
+
+            // Update counter initially
+            counter.textContent = `${maxLength - input.value.length} characters remaining`;
+
+            // Add event listener for future changes
             input.addEventListener("input", () => {
                 const remaining = maxLength - input.value.length;
                 counter.textContent = `${remaining} characters remaining`;
             });
         }
-
-        updateCharCount("collection-title", "collection-title-char-count", 100);
-        updateCharCount("collection-description", "collection-description-char-count", 500);
-        updateCharCount("item-title", "item-title-char-count", 100);
-        updateCharCount("item-description", "item-description-char-count", 500);
     </script>
+
 </body>
 </html>

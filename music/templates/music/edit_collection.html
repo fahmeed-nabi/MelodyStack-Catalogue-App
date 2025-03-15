@@ -5,28 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Collection</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/css/select2.min.css">
 </head>
 <body>
-    <div class="container my-5">
-        <h1 class="text-center text-primary">Edit Collection</h1>
+    <div class="container mt-5">
+        <h2>Edit Collection: {{ collection.title }}</h2>
 
-        <form method="POST" class="mt-4">
+        <!-- Display error and success messages -->
+        {% if messages %}
+            <div class="alert alert-danger" id="messages-alert">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="title" class="form-label">Collection Title</label>
-                <input type="text" id="title" name="title" class="form-control" value="{{ collection.title }}" required>
+                <label for="title" class="form-label">Collection Title:</label>
+                <input type="text" id="title" name="title" class="form-control" value="{{ collection_form.title.value }}" maxlength="100" required>
             </div>
 
             <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea id="description" name="description" class="form-control" rows="4">{{ collection.description }}</textarea>
+                <label for="description" class="form-label">Description:</label>
+                <textarea id="description" name="description" class="form-control" rows="4" maxlength="500">{{ collection_form.description.value }}</textarea>
             </div>
 
-            <button type="submit" class="btn btn-success">Save Changes</button>
+            <div class="mb-3">
+                <label for="public" class="form-check-label">Public:</label>
+                <input type="checkbox" id="public" name="public" class="form-check-input" {% if collection.public %}checked{% endif %}>
+            </div>
+
+            <div class="mb-3">
+                <label for="private_users" class="form-label">Private Users:</label>
+                <select id="private_users" name="private_users" class="form-control select2" multiple>
+                    {% for patron in all_patrons %}
+                        <option value="{{ patron.id }}" {% if patron.id in collection.private_users.all %}selected{% endif %}>
+                            {{ patron.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" name="submit_collection" class="btn btn-primary">Save Changes</button>
             <a href="{% url 'manage_collections' %}" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/js/select2.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize Select2 for multi-select dropdowns
+            $('.select2').select2();
+        });
+    </script>
 </body>
 </html>

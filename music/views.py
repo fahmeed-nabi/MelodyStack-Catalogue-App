@@ -331,10 +331,12 @@ def manage_collections(request):
     return render(request, "music/manage_collections.html", {"collections": collections})
 
 
+@login_required
 def edit_collection(request, title):
     curr_user = get_user(request)
     user_type = get_user_type(curr_user)
 
+    # Redirect non-authenticated users and non-Librarians
     if not request.user.is_authenticated:
         return redirect(reverse("login_view"))
     elif user_type != "Librarian":
@@ -342,21 +344,32 @@ def edit_collection(request, title):
 
     # Convert slugified title back to its original form
     original_title = title.replace('-', ' ')
+    collection = get_object_or_404(Collection, title__iexact=original_title)
 
-    collection = get_object_or_404(Collection, Q(title__iexact=original_title))
+    # Form initialization
+    collection_form = CollectionForm(instance=collection)
 
-    if request.method == "POST":
-        new_title = request.POST.get("title")
-        description = request.POST.get("description")
+    if request.method == 'POST':
+        collection_form = CollectionForm(request.POST, instance=collection)
 
-        if new_title:
-            collection.title = new_title
-            collection.description = description
-            collection.save()
-            return redirect('manage_collections')
+        if "submit_collection" in request.POST:  # User is editing the Collection
+            if collection_form.is_valid():
+                title = collection_form.cleaned_data['title']
+                if Collection.objects.filter(title=title).exclude(
+                        id=collection.id).exists():  # Check for duplicate titles
+                    messages.error(request, f"A Collection with the title '{title}' already exists.")
+                else:
+                    collection_form.save()
+                    return redirect('manage_collections')  # Redirect to dashboard or list
+            else:
+                messages.error(request, "There was an error updating the collection. Please check the form.")
 
-    return render(request, 'music/edit_collection.html', {'collection': collection})
-
+    context = {
+        'collection_form': collection_form,
+        'collection': collection,
+        'all_patrons': Patron.objects.all(),
+    }
+    return render(request, 'music/edit_collection.html', context)
 
 def delete_collection(request, title):
     curr_user = get_user(request)
