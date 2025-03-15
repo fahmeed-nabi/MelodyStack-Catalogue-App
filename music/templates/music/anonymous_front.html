@@ -73,7 +73,14 @@
         <h2 class="m-0 fw-normal">
             <a href="/music/login/" class="header-title">Music Media Storefront</a>
         </h2>
-        <a href="{% provider_login_url 'google' %}?next=/music/redir" class="btn btn-light btn-custom">Login with Google</a>
+
+        {% if user_type == "Librarian" or user_type == "Patron" %}
+            <!-- Show Log Out button for logged-in users -->
+            <a href="{% url 'logout_view' %}" class="btn btn-light btn-custom">Log Out</a>
+        {% else %}
+            <!-- Show Google login button for anonymous users -->
+            <a href="{% provider_login_url 'google' %}?next=/music/redir" class="btn btn-light btn-custom">Login with Google</a>
+        {% endif %}
     </header>
 
     <div class="container mt-5">
@@ -90,13 +97,20 @@
             <div class="col-md-3">
                 <div class="sidebar">
                     <h5 class="fw-bold">Filter by Collection</h5>
-                    <a href="{% url 'public' %}" class="{% if not active_collection %}active{% endif %}">All Collections</a>
+                    <a href="{% url 'collections' %}" class="{% if not active_collection %}active{% endif %}">All Collections</a>
                     {% for collection in collections %}
                         <a href="?collection={{ collection.id }}" class="{% if active_collection and active_collection.id == collection.id %}active{% endif %}">
                             {{ collection.title }}
                         </a>
                     {% endfor %}
                 </div>
+
+                {% if user_type == "Librarian" %}
+                    <!-- Add button for Librarians to create new collections and items, placed below the sidebar -->
+                    <div class="mt-4">
+                        <a href="{% url 'create_collection_item' %}" class="btn btn-success btn-custom w-100">Create New Collection or Item</a>
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Main Content -->
@@ -106,6 +120,8 @@
                     <div class="col-md-4 mb-4">
                         <div class="card h-100">
                             <div class="card-body">
+                                <!-- Show item image -->
+                                <img src="{% if item.file_url %}{{ item.file_url }}{% else %}https://cdn4.iconfinder.com/data/icons/public-sign-part03/100/_-14-512.png{% endif %}" alt="{{ item.title }}" class="card-img-top mb-3" style="height: 200px; object-fit: cover;">
                                 <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }} - {{ item.musicGenre }}</h6>
                                 <p class="card-text text-secondary small">{{ item.description }}</p>

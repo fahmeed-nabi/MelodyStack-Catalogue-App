@@ -51,7 +51,7 @@
         <!-- Profile Picture Section -->
         <div class="text-center mb-4">
             <div class="profile-img-container">
-                <img src="{% if librarian_profile_picture %}{{ librarian_profile_picture2 }}{% else %}https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg{% endif %}" class="rounded-circle mb-3" alt="{{ librarian_first_name }}'s Profile Picture" width="120" height="120">
+                <img src="{% if librarian_profile_picture %}{{ librarian_profile_picture_url }}{% else %}https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg{% endif %}" class="rounded-circle mb-3" alt="{{ librarian_first_name }}'s Profile Picture" width="120" height="120">
             </div>
             <h3>{{ request.user.librarian.user.first_name }} {{ request.user.librarian.user.last_name }}</h3>
         </div>
@@ -96,6 +96,7 @@
             {{ success_message }}
         </div>
         {% endif %}
+
     </div>
 </div>
 

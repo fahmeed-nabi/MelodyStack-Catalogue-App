@@ -20,8 +20,8 @@ class Item(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
+    title = models.CharField(max_length=100)
+    description = models.TextField(max_length=500, blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='CHECKED_IN'
     )
@@ -30,7 +30,7 @@ class Item(models.Model):
         max_length=20, choices=MEDIA_TYPE_CHOICES, default='OTHER',
     )
     image = models.ImageField(
-        default='default.jpg', upload_to='item_images', blank=True, null=True
+        default=None, upload_to='item_images', blank=True, null=True
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -64,14 +64,14 @@ class Patron(models.Model):
 
 
 class Collection(models.Model):
-    title = models.CharField(max_length=255)  # Title of the collection (genre)
-    description = models.TextField(blank=True, null=True)  # Optional
+    title = models.CharField(max_length=100)  # Title of the collection (genre)
+    description = models.TextField(max_length=500, blank=True, null=True)  # Optional
     public = models.BooleanField(default=True)  # Whether the collection is public or private
     private_users = models.ManyToManyField(
         Patron, related_name='accessible_collections', blank=True,  
     )  # Patrons allowed to view private collections
 
-    image = models.ImageField(default='collection_default.jpg', upload_to='collection_images', blank=True)
+    image = models.ImageField(default=None, upload_to='collection_images', blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
