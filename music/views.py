@@ -13,7 +13,7 @@ from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm
 from . import utils
 from .utils import get_user_type, get_accessible_collections
 
-AWS_BUCKET_NAME = 'os.environ.get('BUCKET_NAME')'
+AWS_BUCKET_NAME = 'b-24-music'
 
 def login_page(request):
     curr_user = get_user(request)
