@@ -31,13 +31,21 @@
         .return-button {
             margin-bottom: 20px;
         }
+        /* Flex container for aligning buttons */
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container my-5">
-        <!-- Return to Collections Button -->
-        <div class="text-start return-button">
+        <!-- Button container for Return to Collections and Back to Dashboard -->
+        <div class="button-container">
             <a href="{% url 'collections' %}" class="btn btn-secondary">Return to Collections</a>
+            <a href="{% url 'librarian' %}" class="btn btn-primary">Back to Dashboard</a>
         </div>
 
         <h1 class="text-center text-uppercase fw-light text-dark mb-4">Manage Collections</h1>
