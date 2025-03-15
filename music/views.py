@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views import generic
@@ -49,8 +50,8 @@ def redir(request):
         return redirect("patron")
 
 
-class AnonymousFrontView(ListView):
-    template_name = "music/anonymous_front.html"
+class CollectionsFrontView(ListView):
+    template_name = "music/collections_page.html"
     context_object_name = "items"
 
     def get_queryset(self):
@@ -253,21 +254,35 @@ def create_collection_item(request):
         collection_form = CollectionForm(request.POST)
         item_form = ItemForm(request.POST, request.FILES)
 
-        if collection_form.is_valid() and not item_form.is_valid():
-            # Handle the case where only the collection is filled out
-            collection_form.save()
-            return redirect('collections')  # Redirect to collections page
+        if "submit_collection" in request.POST:  # User is submitting a Collection
+            if collection_form.is_valid():
+                title = collection_form.cleaned_data['title']
+                if Collection.objects.filter(title=title).exists():  # Check for duplicate title
+                    messages.error(request, f"A Collection with the title '{title}' already exists.")
+                else:
+                    collection_form.save()
+                    return redirect('collections')  # Redirect to collections page
 
-        if item_form.is_valid() and collection_form.is_valid():
-            # Handle the case where only the item is filled out
-            item_form.save()
-            return redirect('collections')  # Redirect to collections page
+        if "submit_item" in request.POST:  # User is submitting an Item
+            if item_form.is_valid():
+                description = item_form.cleaned_data['description']
+                if not description.strip():  # Ensure description is not empty
+                    messages.error(request, "Item description is required.")
+                else:
+                    item_form.save()
+                    messages.success(request, "Item created successfully!")
+                    return redirect('collections')  # Redirect to collections page
 
     else:
         collection_form = CollectionForm()
         item_form = ItemForm()
 
+    # Render the form with error messages and other required context
     return render(request, 'music/create_collection_item.html', {
         'collection_form': collection_form,
         'item_form': item_form,
+        'all_patrons': Patron.objects.all(),
+        'all_collections': Collection.objects.all(),
+        'media_type': Item.MEDIA_TYPE_CHOICES,
+        'status': Item.STATUS_CHOICES,
     })

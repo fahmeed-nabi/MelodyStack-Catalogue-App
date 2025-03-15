@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Create New Collection and Item</title>
+    <title>Create New Collection or Item</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/css/select2.min.css" />
     <style>
         body {
             background-color: #f8f9fa;
@@ -27,63 +28,47 @@
             background-color: #1a252f;
             color: white;
         }
-        .card {
-            border-radius: 15px;
-            overflow: hidden;
-            transition: transform 0.3s ease-in-out;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        .card-footer {
-            background-color: #ffffff;
-        }
-        .header-title {
-            text-decoration: none;
-            color: white;
-        }
-        .header-title:hover {
-            text-decoration: underline;
-        }
         .tab-content {
             padding: 20px;
             background-color: white;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        .form-control:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-        }
-        /* Push footer to the bottom */
         footer {
             margin-top: auto;
+        }
+        .char-count {
+            font-size: 0.9em;
+            color: #6c757d;
+            text-align: right;
+        }
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+        }
+        .select2-container {
+            width: 100% !important;
         }
     </style>
 </head>
 <body>
     <header class="header d-flex justify-content-between align-items-center shadow-sm">
-        <!-- Back Button to go to the collections page -->
         <a href="{% url 'collections' %}" class="btn btn-light btn-custom">Back to Collections</a>
-
-        <!-- Dashboard Button to go to the dashboard -->
         <a href="{% url 'librarian' %}" class="btn btn-light btn-custom">Go to Dashboard</a>
     </header>
 
     <div class="container mt-5">
-        <h2 class="mb-4">Create a New Collection and Item</h2>
+        <h2 class="mb-4">Create a New Collection or Item</h2>
 
-        <!-- Success Message -->
+        <!-- Display error messages -->
         {% if messages %}
-            <div class="alert alert-success">
+            <div class="alert alert-danger">
                 {% for message in messages %}
                     <p>{{ message }}</p>
                 {% endfor %}
             </div>
         {% endif %}
 
-        <!-- Tabs for Collection and Item -->
         <ul class="nav nav-pills mb-3" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <a class="nav-link active" id="collection-tab" data-bs-toggle="tab" href="#collection" role="tab" aria-controls="collection" aria-selected="true">Collection</a>
@@ -93,42 +78,96 @@
             </li>
         </ul>
 
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <!-- Tab Content -->
-            <div class="tab-content" id="myTabContent">
-                <!-- Collection Form -->
-                <div class="tab-pane fade show active" id="collection" role="tabpanel" aria-labelledby="collection-tab">
+        <div class="tab-content" id="myTabContent">
+            <!-- Collection Form -->
+            <div class="tab-pane fade show active" id="collection" role="tabpanel" aria-labelledby="collection-tab">
+                <form method="post">
+                    {% csrf_token %}
                     <h4>Create Collection</h4>
                     <div class="mb-3">
-                        {{ collection_form.as_p }}
+                        <label for="collection-title">Title:</label>
+                        <input type="text" id="collection-title" name="title" class="form-control" maxlength="100" required>
+                        <div class="char-count" id="collection-title-char-count">100 characters remaining</div>
                     </div>
-                    <!-- Collection Submit Button -->
+                    <div class="mb-3">
+                        <label for="collection-description">Description:</label>
+                        <textarea id="collection-description" name="description" class="form-control" rows="4" maxlength="500"></textarea>
+                        <div class="char-count" id="collection-description-char-count">500 characters remaining</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="collection-public">Public:</label>
+                        <input type="checkbox" id="collection-public" name="public">
+                    </div>
+                    <div class="mb-3">
+                        <label for="collection-private-users">Private Users:</label>
+                        <select id="collection-private-users" name="private_users" class="form-control select2" multiple>
+                            {% for patron in all_patrons %}
+                                <option value="{{ patron.id }}">{{ patron.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <button type="submit" name="submit_collection" class="btn btn-primary btn-custom mt-4">Create Collection</button>
-                </div>
+                </form>
             </div>
-        </form>
 
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <!-- Tab Content -->
-            <div class="tab-content" id="myTabContent">
-                <!-- Item Form -->
-                <div class="tab-pane fade" id="item" role="tabpanel" aria-labelledby="item-tab">
+            <!-- Item Form -->
+            <div class="tab-pane fade" id="item" role="tabpanel" aria-labelledby="item-tab">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
                     <h4>Create Item</h4>
                     <div class="mb-3">
-                        {{ item_form.as_p }}
+                        <label for="item-title">Title:</label>
+                        <input type="text" id="item-title" name="title" class="form-control" maxlength="100" required>
+                        <div class="char-count" id="item-title-char-count">100 characters remaining</div>
                     </div>
-                    <!-- Item Submit Button -->
+                    <div class="mb-3">
+                        <label for="item-description">Description:</label>
+                        <textarea id="item-description" name="description" class="form-control" rows="4" maxlength="500" required></textarea>
+                        <div class="char-count" id="item-description-char-count">500 characters remaining</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="item-status">Status:</label>
+                        <select id="item-status" name="status" class="form-control">
+                            {% for key, value in status %}
+                                <option value="{{ key }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="item-location">Location:</label>
+                        <input type="text" id="item-location" name="location" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="item-media-type">Media Type:</label>
+                        <select id="item-media-type" name="media_type" class="form-control">
+                            {% for key, value in media_type %}
+                                <option value="{{ key }}">{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="item-image">Image:</label>
+                        <input type="file" id="item-image" name="image" class="form-control" accept=".png, .jpg, .jpeg">
+                        <div class="error-message" id="item-image-error"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="item-collections">Collections:</label>
+                        <select id="item-collections" name="collections" class="form-control select2" multiple>
+                            {% for collection in all_collections %}
+                                <option value="{{ collection.id }}">{{ collection.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="item-tags">Tags:</label>
+                        <input type="text" id="item-tags" name="tags" class="form-control">
+                    </div>
                     <button type="submit" name="submit_item" class="btn btn-primary btn-custom mt-4">Create Item</button>
-                </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-light py-3">
         <div class="container text-center">
             <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
@@ -136,5 +175,41 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/js/select2.min.js"></script>
+    <script>
+        // Character count for title and description fields
+        function updateCharCount(inputId, counterId, maxLength) {
+            const input = document.getElementById(inputId);
+            const counter = document.getElementById(counterId);
+            input.addEventListener("input", () => {
+                const remaining = maxLength - input.value.length;
+                counter.textContent = `${remaining} characters remaining`;
+            });
+        }
+
+        updateCharCount("collection-title", "collection-title-char-count", 100);
+        updateCharCount("collection-description", "collection-description-char-count", 500);
+        updateCharCount("item-title", "item-title-char-count", 100);
+        updateCharCount("item-description", "item-description-char-count", 500);
+
+        // Select2 initialization for searchable dropdowns
+        $('.select2').select2();
+
+        // Image validation in the Item form
+        const itemImageInput = document.getElementById("item-image");
+        const itemImageError = document.getElementById("item-image-error");
+
+        itemImageInput.addEventListener("change", () => {
+            const file = itemImageInput.files[0];
+            const allowedExtensions = /(\.jpg|\.jpeg|\.png)$/i;
+
+            if (file && !allowedExtensions.test(file.name)) {
+                itemImageError.textContent = "Only .png, .jpg, and .jpeg files are allowed.";
+                itemImageInput.value = ""; // Clear the input field
+            } else {
+                itemImageError.textContent = ""; // Clear error message
+            }
+        });
+    </script>
 </body>
 </html>
