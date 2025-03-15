@@ -194,7 +194,7 @@ STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
-            "bucket_name": 'os.environ.get('BUCKET_NAME')',
+            "bucket_name": os.environ.get('BUCKET_NAME'),
         },
     },
 

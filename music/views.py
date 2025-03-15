@@ -264,6 +264,14 @@ def librarian_settings_view(request):
 
 @login_required
 def create_collection_item(request):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
     if request.method == 'POST':
         collection_form = CollectionForm(request.POST)
         item_form = ItemForm(request.POST, request.FILES)
