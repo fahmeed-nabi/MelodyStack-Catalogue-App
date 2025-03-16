@@ -1,0 +1,29 @@
+name: Deploy Music App to Heroku
+
+on: 
+    push: 
+        branches: [main]
+
+jobs: 
+    tests:
+        uses: ./.github/workflows/tests.yml
+        secrets:
+            AWS_KEY: ${{ secrets.AWS_KEY }}
+            AWS_ID: ${{ secrets.AWS_ID }}
+            BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+    deploy:
+        needs: [tests]
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+            - name: Install Heroku CLI
+              run: | 
+                    curl https://cli-assets.heroku.com/install.sh | sh
+            - uses: akhileshns/heroku-deploy@v3.14.15
+              with: 
+                heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+                heroku_app_name: "project-b-24-s2025"
+                heroku_email: "arjun.krishna.rao@gmail.com"
+
+
