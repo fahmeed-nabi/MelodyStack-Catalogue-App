@@ -156,7 +156,10 @@ def librarian_page(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if librarian.profile_picture:
+        file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     return render(request, "music/librarian.html", {
         'librarian_email' : librarian.user.email,
@@ -177,7 +180,10 @@ def patron_page(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if patron.profile_picture:
+        file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     return render(request, "music/patron.html", {
         'patron_email' : patron.user.email,
@@ -194,14 +200,18 @@ def patron_settings_view(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if patron.profile_picture:
+        file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=patron)
         if form.is_valid():
             form.save()
             success_message = "Changes saved successfully!"  # Set the success message
-            file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+            if patron.profile_picture:
+                file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
             return render(request, 'music/patron_settings.html',
                           {
                               'form': form,
@@ -232,14 +242,18 @@ def librarian_settings_view(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if librarian.profile_picture:
+        file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     if request.method == 'POST':
         form = LibrarianSettingsForm(request.POST, request.FILES, instance=librarian)
         if form.is_valid():
             form.save()
             success_message = "Changes saved successfully!"
-            file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+            if librarian.profile_picture:
+                file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
             return render(request, 'music/librarian_settings.html',
                           {
                               'form': form,
