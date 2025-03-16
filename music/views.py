@@ -12,8 +12,7 @@ from .models import Item, Librarian, Patron, Collection
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm
 from . import utils
 from .utils import get_user_type, get_accessible_collections
-
-AWS_BUCKET_NAME = 'os.environ.get('BUCKET_NAME')'
+from mysite.settings import os.environ.get('BUCKET_NAME')
 
 def login_page(request):
     curr_user = get_user(request)
@@ -75,7 +74,7 @@ class CollectionsFrontView(ListView):
             # Attach file URLs
             for item in items:
                 if item.image:
-                    item.file_url = aws.generate_url(item.image.name, AWS_BUCKET_NAME)
+                    item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
 
             return items  # Return early when filtering by collection
 
@@ -95,7 +94,7 @@ class CollectionsFrontView(ListView):
         # Attach file URLs
         for item in items:
             if item.image:
-                item.file_url = aws.generate_url(item.image.name, AWS_BUCKET_NAME)
+                item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
 
         return items
 
@@ -120,7 +119,7 @@ class CollectionsFrontView(ListView):
         if collection_id:
             context["active_collection"] = get_object_or_404(Collection, id=collection_id)
 
-        context["user_type"] = user_type  # Add user_type to context for use in the template
+        context["user_type"] = user_type
 
         return context
 
@@ -136,12 +135,27 @@ class ItemDetailView(DetailView):
         """
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
+    def get_context_data(self, **kwargs):
+        """
+        Add item data
+        """
+        context = super().get_context_data(**kwargs)
+        item = self.get_object()
+
+        if item.image:
+            file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
+            context['file_url'] = file_url
+        else:
+            context['file_url'] = None
+
+        return context
+
 @login_required
 def librarian_page(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     return render(request, "music/librarian.html", {
         'librarian_email' : librarian.user.email,
@@ -162,7 +176,7 @@ def patron_page(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     return render(request, "music/patron.html", {
         'patron_email' : patron.user.email,
@@ -179,7 +193,7 @@ def patron_settings_view(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=patron)
@@ -216,13 +230,13 @@ def librarian_settings_view(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, AWS_BUCKET_NAME)
+    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
 
     if request.method == 'POST':
         form = LibrarianSettingsForm(request.POST, request.FILES, instance=librarian)
         if form.is_valid():
             form.save()
-            success_message = "Changes saved successfully!"  # Set the success message
+            success_message = "Changes saved successfully!"
             return render(request, 'music/librarian_settings.html',
                           {
                               'form': form,
@@ -231,7 +245,7 @@ def librarian_settings_view(request):
                               'librarian_profile_picture_url': file_url,
                               'librarian_bio': librarian.bio,
                               'librarian_birthday': librarian.birthday,
-                              'success_message': success_message,  # Include success message in context
+                              'success_message': success_message,
                           })
         else:
             print(form.errors)
@@ -248,6 +262,12 @@ def librarian_settings_view(request):
     })
 
 
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .forms import CollectionForm, ItemForm
+from .models import Collection, Patron, Item
+
 @login_required
 def create_collection_item(request):
     if request.method == 'POST':
@@ -261,28 +281,33 @@ def create_collection_item(request):
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
-                    return redirect('collections')  # Redirect to collections page
+                    messages.success(request, "Collection created successfully!")
+                    return redirect('collections')
+            else:
+                messages.error(request, "There was an error creating the collection. Please check the form.")
 
         if "submit_item" in request.POST:  # User is submitting an Item
             if item_form.is_valid():
                 description = item_form.cleaned_data['description']
                 if not description.strip():  # Ensure description is not empty
-                    messages.error(request, "Item description is required.")
+                    messages.error(request, "Item description cannot be empty.")
                 else:
                     item_form.save()
-                    messages.success(request, "Item created successfully!")
-                    return redirect('collections')  # Redirect to collections page
+                    return redirect('collections')
+            else:
+                messages.error(request, "Failed to create the item. Please upload an image in .jpg, .jpeg, or .png format.")
 
     else:
         collection_form = CollectionForm()
         item_form = ItemForm()
 
-    # Render the form with error messages and other required context
-    return render(request, 'music/create_collection_item.html', {
+    # Pass the forms and other context data to the template
+    context = {
         'collection_form': collection_form,
         'item_form': item_form,
         'all_patrons': Patron.objects.all(),
         'all_collections': Collection.objects.all(),
         'media_type': Item.MEDIA_TYPE_CHOICES,
         'status': Item.STATUS_CHOICES,
-    })
+    }
+    return render(request, 'music/create_collection_item.html', context)
