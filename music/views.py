@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views import generic
 from django.contrib.auth import get_user, logout
-from datetime import datetime
+from django.utils import timezone
 from django.views.generic import ListView, DetailView
 
 from . import aws
@@ -44,7 +44,7 @@ def redir(request):
             user=curr_user,
             name=curr_user.email,
             google_account=curr_user.email,
-            date_joined=datetime.now()
+            date_joined=timezone.now()
         )
         return redirect("patron")
 

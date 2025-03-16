@@ -185,9 +185,13 @@ SOCIALACCOUNT_ADAPTER = "music.adapters.MySocialAccountAdapter"
 ACCOUNT_ADAPTER = "music.adapters.MyAccountAdapter"
 
 # AWS S3 Configuration
-os.environ.get('AWS_ID') = os.getenv('AWS_ID')
-os.environ.get('AWS_KEY') = os.getenv('AWS_KEY')
-os.environ.get('BUCKET_NAME') = os.getenv('BUCKET_NAME')
+os.environ.get('AWS_ID') = os.environ.get('AWS_ID')
+os.environ.get('AWS_KEY') = os.environ.get('AWS_KEY')
+os.environ.get('BUCKET_NAME') = os.environ.get('BUCKET_NAME')
+
+if not os.environ.get('BUCKET_NAME'):
+    raise ValueError("os.environ.get('BUCKET_NAME') is not set in environment variables")
+    
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 STORAGES = {
