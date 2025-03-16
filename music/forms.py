@@ -32,3 +32,7 @@ class ItemForm(forms.ModelForm):
     def clean_collections(self):
         collections = self.cleaned_data.get('collections')
         return collections
+
+class FilterForm(forms.Form):
+    title = forms.CharField(label="Title\n", required=False)
+    media_type = forms.CharField(label="Media Type\n", required=False)
