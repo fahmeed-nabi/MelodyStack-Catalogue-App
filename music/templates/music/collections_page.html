@@ -109,6 +109,11 @@
                             {{ collection.title }}
                         </a>
                     {% endfor %}
+                    <h5 class="fw-bold mt-4">Filter by Attributes</h5>
+                    <form>
+                        {{ filter_form }}
+                        <input class="mt-2" type="submit" value="Filter">
+                    </form>
                 </div>
                 {% if user_type == "Librarian" %}
                     <div class="mt-4">
@@ -119,7 +124,7 @@
 
             <div class="col-md-9">
                 <div class="row">
-                    {% for item in items %}
+                    {% for item in filtered_items %}
                     <div class="col-md-4 mb-4">
                         <div class="card h-100">
                             <div class="card-body">
