@@ -8,69 +8,50 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            margin: 0;
-            height: 100vh;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            background-image: url('https://pixelz.cc/wp-content/uploads/2018/06/musical-notes-uhd-4k-wallpaper..jpg');
-            background-size: cover;
-            background-position: center;
+            flex-direction: column;
+            min-height: 100vh;
         }
-        .container {
-            text-align: center;
-        }
-        .welcome-box {
-            max-width: 400px;
-            margin-bottom: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+        main {
+            flex-grow: 1;
         }
         .login-box {
             max-width: 400px;
-            width: 100%;
+            background: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-            background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white */
-        }
-        footer {
-            text-align: center;
-            position: absolute;
-            bottom: 10px;
-            width: 100%;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
-<body>
+<body class="d-flex flex-column">
     {% load socialaccount %}
 
-    <div class="container d-flex flex-column justify-content-center align-items-center">
-        <!-- Welcome Box -->
-        <div class="welcome-box">
-            <h1>Welcome to the Music Catalog</h1>
-        </div>
+    <!-- Header -->
+    <header class="bg-light text-center py-3">
+        <h1>Welcome to the Music Cataloging App</h1>
+        <p class="mb-0">Log in with Google to access all features!</p>
+    </header>
 
-        <!-- Login Box -->
-        <div class="login-box text-center">
+    <!-- Main Content -->
+    <main class="d-flex flex-column justify-content-center align-items-center text-center flex-grow-1">
+        <div class="login-box">
             <h2 class="mb-3">Login Required</h2>
             <p>To access all features, please log in:</p>
-            <a class="btn btn-primary w-100 mb-3" href="{% provider_login_url 'google' %}?next=/music/redir">
+            <a class="btn btn-primary w-100" href="{% provider_login_url 'google' %}?next=/music/redir">
                 <i class="bi bi-google"></i> Login with Google
             </a>
+        </div>
 
-            <hr>
-
+        <div class="mt-4">
             <h3>Browse Public Collections</h3>
             <p>You can browse the public collections below without logging in:</p>
-            <a href="{% url 'collections' %}" class="btn btn-success w-100">View Public Collections</a>
+            <a href="/music/public-collections" class="btn btn-success">View Public Collections</a>
         </div>
-    </div>
+    </main>
 
     <!-- Footer -->
-    <footer class="bg-light py-3">
+    <footer class="bg-light text-center py-3 mt-auto">
         <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
     </footer>
 
