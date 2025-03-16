@@ -8,6 +8,10 @@ on:
 jobs:
     test: 
         runs-on: ubuntu-latest
+        env:
+            AWS_KEY: ${{ secrets.AWS_KEY }}
+            AWS_ID: ${{ secrets.AWS_ID }}
+            BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
     
         steps:
             - uses: actions/checkout@v4
