@@ -292,8 +292,19 @@ def create_collection_item(request):
         if "submit_item" in request.POST:  # User is submitting an Item
             if item_form.is_valid():
                 description = item_form.cleaned_data['description']
+
+                in_public = False
+                in_private = False
+                for collection in item_form.cleaned_data['collections']:
+                    if not collection.public:
+                        in_private = True
+                    else:
+                        in_public = True
+
                 if not description.strip():  # Ensure description is not empty
                     messages.error(request, "Item description cannot be empty.")
+                elif in_public and in_private:
+                    messages.error(request, "Item cannot be in both a private and public collection.")
                 else:
                     item_form.save()
                     return redirect('collections')

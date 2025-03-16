@@ -84,7 +84,7 @@
         <div class="tab-content" id="myTabContent">
             <!-- Collection Form -->
             <div class="tab-pane fade show active" id="collection" role="tabpanel" aria-labelledby="collection-tab">
-                <form method="post">
+                <form method="post" id="collection-form">
                     {% csrf_token %}
                     <h4>Create Collection</h4>
                     <div class="mb-3">
@@ -111,6 +111,7 @@
                     </div>
                     <button type="submit" name="submit_collection" class="btn btn-primary btn-custom mt-4">Create Collection</button>
                 </form>
+                <div id="collection-error-message" class="error-message" style="display: none;">You cannot select both a public collection and private users. Please choose one option.</div>
             </div>
 
             <!-- Item Form -->
@@ -185,6 +186,20 @@
             initializeCharCount("collection-description", "collection-description-char-count", 500);
             initializeCharCount("item-title", "item-title-char-count", 100);
             initializeCharCount("item-description", "item-description-char-count", 500);
+
+            // Add form validation for collection public/private conflict
+            const collectionForm = document.getElementById("collection-form");
+            collectionForm.addEventListener("submit", function (event) {
+                const isPublic = document.getElementById("collection-public").checked;
+                const privateUsers = document.getElementById("collection-private-users").selectedOptions.length > 0;
+
+                if (isPublic && privateUsers) {
+                    event.preventDefault(); // Prevent form submission
+                    document.getElementById("collection-error-message").style.display = "block";
+                } else {
+                    document.getElementById("collection-error-message").style.display = "none";
+                }
+            });
         });
 
         // Function to update character count dynamically

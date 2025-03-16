@@ -29,3 +29,6 @@ class ItemForm(forms.ModelForm):
         model = Item
         fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
 
+    def clean_collections(self):
+        collections = self.cleaned_data.get('collections')
+        return collections
