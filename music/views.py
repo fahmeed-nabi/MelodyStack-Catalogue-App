@@ -5,12 +5,12 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views import generic
 from django.contrib.auth import get_user, logout
-from datetime import datetime
+from django.utils import timezone
 from django.views.generic import ListView, DetailView
 
 from . import aws
 from .models import Item, Librarian, Patron, Collection
-from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm
+from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm, FilterForm
 from . import utils
 from .utils import get_user_type, get_accessible_collections
 from mysite.settings import os.environ.get('BUCKET_NAME')
@@ -45,7 +45,7 @@ def redir(request):
             user=curr_user,
             name=curr_user.email,
             google_account=curr_user.email,
-            date_joined=datetime.now()
+            date_joined=timezone.now()
         )
         return redirect("patron")
 
@@ -101,7 +101,7 @@ class CollectionsFrontView(ListView):
 
     def get_context_data(self, **kwargs):
         """
-        Add all collections and the selected collection to the context.
+        Add all collections, the selected collection, and form data to the context.
         """
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
@@ -121,6 +121,43 @@ class CollectionsFrontView(ListView):
             context["active_collection"] = get_object_or_404(Collection, id=collection_id)
 
         context["user_type"] = user_type
+
+        context["filter_form"] = FilterForm()
+
+        get_query_dict = self.request.GET
+        title = ""
+        if "title" in get_query_dict:
+            title = str(get_query_dict["title"])
+        media_type = ""
+        if "media_type" in get_query_dict:
+            media_type = str(get_query_dict["media_type"])
+        description = ""
+        if "description" in get_query_dict:
+            description = str(get_query_dict["description"])
+        
+        if title == "" and media_type == "" and description == "":
+            context["filtered_items"] = Item.objects.all()
+        elif title == "" and media_type == "" and description != "":
+            context["filtered_items"] = Item.objects.filter(
+                description__icontains=description)
+        elif title == "" and media_type != "" and description == "":
+            context["filtered_items"] = Item.objects.filter(
+                media_type__icontains=media_type)
+        elif title == "" and media_type != "" and description != "":
+            context["filtered_items"] = Item.objects.filter(
+                media_type__icontains=media_type, description__icontains=description)
+        elif title != "" and media_type == "" and description == "":
+            context["filtered_items"] = Item.objects.filter(
+                title__icontains=title)
+        elif title != "" and media_type == "" and description != "":
+            context["filtered_items"] = Item.objects.filter(
+                title__icontains=title, description__icontains=description)
+        elif title != "" and media_type != "" and description == "":
+            context["filtered_items"] = Item.objects.filter(
+                title__icontains=title, media_type__icontains=media_type)
+        elif title != "" and media_type != "" and description != "":
+            context["filtered_items"] = Item.objects.filter(
+                title__icontains=title, media_type__icontains=media_type, description__icontains=description)
 
         return context
 

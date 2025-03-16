@@ -36,3 +36,4 @@ class ItemForm(forms.ModelForm):
 class FilterForm(forms.Form):
     title = forms.CharField(label="Title\n", required=False)
     media_type = forms.CharField(label="Media Type\n", required=False)
+    description = forms.CharField(label="Description\n", required=False)
