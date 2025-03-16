@@ -103,11 +103,16 @@
                     </div>
                     <div class="mb-3">
                         <label for="collection-private-users">Private Users:</label>
-                        <select id="collection-private-users" name="private_users" class="form-control select2" multiple>
+                        <div id="collection-private-users" class="form-control" style="height: auto;">
                             {% for patron in all_patrons %}
-                                <option value="{{ patron.id }}">{{ patron.name }}</option>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="{{ patron.id }}" id="patron-{{ patron.id }}" name="private_users">
+                                    <label class="form-check-label" for="patron-{{ patron.id }}">
+                                        {{ patron.name }}
+                                    </label>
+                                </div>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
                     <button type="submit" name="submit_collection" class="btn btn-primary btn-custom mt-4">Create Collection</button>
                 </form>
@@ -155,11 +160,16 @@
                     </div>
                     <div class="mb-3">
                         <label for="item-collections">Collections:</label>
-                        <select id="item-collections" name="collections" class="form-control select2" multiple>
+                        <div id="item-collections" class="form-control select2" style="height: auto;">
                             {% for collection in all_collections %}
-                                <option value="{{ collection.id }}">{{ collection.title }}</option>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="{{ collection.id }}" id="collection-{{ collection.id }}" name="collections">
+                                    <label class="form-check-label" for="collection-{{ collection.id }}">
+                                        {{ collection.title }} {% if collection.public %}(public){% else %}(private){% endif %}
+                                    </label>
+                                </div>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="item-tags">Tags:</label>
@@ -181,42 +191,35 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/js/select2.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // Initialize counters for all fields on page load
             initializeCharCount("collection-title", "collection-title-char-count", 100);
             initializeCharCount("collection-description", "collection-description-char-count", 500);
             initializeCharCount("item-title", "item-title-char-count", 100);
             initializeCharCount("item-description", "item-description-char-count", 500);
 
-            // Add form validation for collection public/private conflict
-            const collectionForm = document.getElementById("collection-form");
-            collectionForm.addEventListener("submit", function (event) {
-                const isPublic = document.getElementById("collection-public").checked;
-                const privateUsers = document.getElementById("collection-private-users").selectedOptions.length > 0;
+            // Initialize Select2
+            $(".select2").select2();
 
-                if (isPublic && privateUsers) {
-                    event.preventDefault(); // Prevent form submission
-                    document.getElementById("collection-error-message").style.display = "block";
+            // Form validation for collections
+            document.getElementById("collection-public").addEventListener("change", function () {
+                const privateUsersField = document.getElementById("collection-private-users");
+                const errorMessage = document.getElementById("collection-error-message");
+                if (this.checked && privateUsersField.value.length > 0) {
+                    errorMessage.style.display = "block";
                 } else {
-                    document.getElementById("collection-error-message").style.display = "none";
+                    errorMessage.style.display = "none";
                 }
             });
         });
 
-        // Function to update character count dynamically
-        function initializeCharCount(inputId, counterId, maxLength) {
-            const input = document.getElementById(inputId);
-            const counter = document.getElementById(counterId);
+        function initializeCharCount(inputId, charCountId, maxLength) {
+            const inputElement = document.getElementById(inputId);
+            const charCountElement = document.getElementById(charCountId);
 
-            // Update counter initially
-            counter.textContent = `${maxLength - input.value.length} characters remaining`;
-
-            // Add event listener for future changes
-            input.addEventListener("input", () => {
-                const remaining = maxLength - input.value.length;
-                counter.textContent = `${remaining} characters remaining`;
+            inputElement.addEventListener("input", function () {
+                const remainingChars = maxLength - inputElement.value.length;
+                charCountElement.textContent = `${remainingChars} characters remaining`;
             });
         }
     </script>
-
 </body>
 </html>

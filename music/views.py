@@ -295,9 +295,11 @@ def create_collection_item(request):
 
                 in_public = False
                 in_private = False
+                num_private_collections = 0
                 for collection in item_form.cleaned_data['collections']:
                     if not collection.public:
                         in_private = True
+                        num_private_collections += 1
                     else:
                         in_public = True
 
@@ -305,6 +307,8 @@ def create_collection_item(request):
                     messages.error(request, "Item description cannot be empty.")
                 elif in_public and in_private:
                     messages.error(request, "Item cannot be in both a private and public collection.")
+                elif num_private_collections > 1:
+                    messages.error(request, "Item cannot be in more than one private collection.")
                 else:
                     item_form.save()
                     return redirect('collections')
