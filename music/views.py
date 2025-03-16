@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.urls import reverse
@@ -35,9 +36,9 @@ def redir(request):
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
 
-    if (librarians.exists()):
+    if librarians.exists():
         return redirect("librarian")
-    elif (patrons.exists()):
+    elif patrons.exists():
         return redirect("patron")
     else:
         new_patron = Patron.objects.create(
@@ -192,7 +193,10 @@ def librarian_page(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if librarian.profile_picture:
+        file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     return render(request, "music/librarian.html", {
         'librarian_email' : librarian.user.email,
@@ -213,7 +217,10 @@ def patron_page(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if patron.profile_picture:
+        file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     return render(request, "music/patron.html", {
         'patron_email' : patron.user.email,
@@ -230,13 +237,18 @@ def patron_settings_view(request):
     curr_user = get_user(request)
     patron = Patron.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if patron.profile_picture:
+        file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     if request.method == 'POST':
         form = SettingsForm(request.POST, request.FILES, instance=patron)
         if form.is_valid():
             form.save()
             success_message = "Changes saved successfully!"  # Set the success message
+            if patron.profile_picture:
+                file_url = aws.generate_url(patron.profile_picture.name, os.environ.get('BUCKET_NAME'))
             return render(request, 'music/patron_settings.html',
                           {
                               'form': form,
@@ -267,13 +279,18 @@ def librarian_settings_view(request):
     curr_user = get_user(request)
     librarian = Librarian.objects.filter(user=curr_user).first()
 
-    file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    if librarian.profile_picture:
+        file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
+    else:
+        file_url = None
 
     if request.method == 'POST':
         form = LibrarianSettingsForm(request.POST, request.FILES, instance=librarian)
         if form.is_valid():
             form.save()
             success_message = "Changes saved successfully!"
+            if librarian.profile_picture:
+                file_url = aws.generate_url(librarian.profile_picture.name, os.environ.get('BUCKET_NAME'))
             return render(request, 'music/librarian_settings.html',
                           {
                               'form': form,
@@ -298,15 +315,16 @@ def librarian_settings_view(request):
         'librarian_birthday': librarian.birthday,
     })
 
-
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from .forms import CollectionForm, ItemForm
-from .models import Collection, Patron, Item
-
 @login_required
 def create_collection_item(request):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
     if request.method == 'POST':
         collection_form = CollectionForm(request.POST)
         item_form = ItemForm(request.POST, request.FILES)
@@ -318,7 +336,6 @@ def create_collection_item(request):
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
-                    messages.success(request, "Collection created successfully!")
                     return redirect('collections')
             else:
                 messages.error(request, "There was an error creating the collection. Please check the form.")
@@ -326,8 +343,23 @@ def create_collection_item(request):
         if "submit_item" in request.POST:  # User is submitting an Item
             if item_form.is_valid():
                 description = item_form.cleaned_data['description']
+
+                in_public = False
+                in_private = False
+                num_private_collections = 0
+                for collection in item_form.cleaned_data['collections']:
+                    if not collection.public:
+                        in_private = True
+                        num_private_collections += 1
+                    else:
+                        in_public = True
+
                 if not description.strip():  # Ensure description is not empty
                     messages.error(request, "Item description cannot be empty.")
+                elif in_public and in_private:
+                    messages.error(request, "Item cannot be in both a private and public collection.")
+                elif num_private_collections > 1:
+                    messages.error(request, "Item cannot be in more than one private collection.")
                 else:
                     item_form.save()
                     return redirect('collections')
@@ -338,7 +370,6 @@ def create_collection_item(request):
         collection_form = CollectionForm()
         item_form = ItemForm()
 
-    # Pass the forms and other context data to the template
     context = {
         'collection_form': collection_form,
         'item_form': item_form,
@@ -348,3 +379,79 @@ def create_collection_item(request):
         'status': Item.STATUS_CHOICES,
     }
     return render(request, 'music/create_collection_item.html', context)
+
+
+def manage_collections(request):
+    """
+    View to display all collections for management.
+    """
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    collections = Collection.objects.all()
+    return render(request, "music/manage_collections.html", {"collections": collections})
+
+
+@login_required
+def edit_collection(request, title):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    # Redirect non-authenticated users and non-Librarians
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    # Convert slugified title back to its original form
+    original_title = title.replace('-', ' ')
+    collection = get_object_or_404(Collection, title__iexact=original_title)
+
+    # Form initialization
+    collection_form = CollectionForm(instance=collection)
+
+    if request.method == 'POST':
+        collection_form = CollectionForm(request.POST, instance=collection)
+
+        if "submit_collection" in request.POST:  # User is editing the Collection
+            if collection_form.is_valid():
+                title = collection_form.cleaned_data['title']
+                if Collection.objects.filter(title=title).exclude(
+                        id=collection.id).exists():  # Check for duplicate titles
+                    messages.error(request, f"A Collection with the title '{title}' already exists.")
+                else:
+                    collection_form.save()
+                    return redirect('manage_collections')  # Redirect to dashboard or list
+            else:
+                messages.error(request, "There was an error updating the collection. Please check the form.")
+
+    context = {
+        'collection_form': collection_form,
+        'collection': collection,
+        'all_patrons': Patron.objects.all(),
+    }
+    return render(request, 'music/edit_collection.html', context)
+
+def delete_collection(request, title):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login_view"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    # Convert slugified title back to its original form
+    original_title = title.replace('-', ' ')
+    collection = get_object_or_404(Collection, Q(title__iexact=original_title))
+
+    if request.method == "POST":
+        collection.delete()
+        return redirect('manage_collections')
+
+    return render(request, 'music/delete_collection.html', {'collection': collection})

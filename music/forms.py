@@ -29,6 +29,10 @@ class ItemForm(forms.ModelForm):
         model = Item
         fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
 
+    def clean_collections(self):
+        collections = self.cleaned_data.get('collections')
+        return collections
+
 class FilterForm(forms.Form):
     title = forms.CharField(label="Title\n", required=False)
     media_type = forms.CharField(label="Media Type\n", required=False)

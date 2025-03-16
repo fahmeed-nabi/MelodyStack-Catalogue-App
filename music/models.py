@@ -48,8 +48,9 @@ class Patron(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patron_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(default='default.jpg', upload_to='profile_pics', blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     date_joined = models.DateTimeField('date_joined')
+    saved_items = models.ManyToManyField(Item, related_name='saved_items', blank=True)
 
     # Optional info
     bio = models.CharField(max_length=250, blank=True)
@@ -87,6 +88,11 @@ class Collection(models.Model):
         except Patron.DoesNotExist:
             return False
 
+    # Delete all items associated with this collection
+    def delete(self, *args, **kwargs):
+        self.items.all().delete()
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.title
 
@@ -119,7 +125,7 @@ class Librarian(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="librarian_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
-    profile_picture = models.ImageField(default='default.jpg', upload_to='profile_pics', blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     date_joined = models.DateTimeField('date_joined')
 
     # Optional info
