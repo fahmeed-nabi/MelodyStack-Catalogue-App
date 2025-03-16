@@ -2,7 +2,7 @@ name: Run Music App Tests
 
 on:
     pull_request:
-        branches: [tests-for-actions]
+        branches: [dev]
     workflow_call:
         secrets:
             AWS_KEY: { required: true }

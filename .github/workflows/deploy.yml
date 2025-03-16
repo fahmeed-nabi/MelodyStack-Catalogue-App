@@ -2,7 +2,7 @@ name: Deploy Music App to Heroku
 
 on: 
     push: 
-        branches: [tests-for-actions]
+        branches: [main]
 
 jobs: 
     tests:
