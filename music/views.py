@@ -104,7 +104,7 @@ class CollectionsFrontView(ListView):
         # Attach file URLs for the filtered items
         for item in items:
             if item.image:
-                item.file_url = item.image.url  # Use `.url` attribute of ImageField
+                item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
 
         return items
 
