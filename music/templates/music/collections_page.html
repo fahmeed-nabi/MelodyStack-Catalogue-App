@@ -184,6 +184,11 @@
 
                     <h5 class="fw-bold mt-4">Filter by Item Attributes</h5>
                     <form method="GET">
+                        <!-- Preserve the selected collection -->
+                        {% if active_collection %}
+                            <input type="hidden" name="collection" value="{{ active_collection.id }}">
+                        {% endif %}
+
                         <!-- Filter by Title -->
                         <div class="mb-3">
                             <label for="title" class="form-label">Title</label>
@@ -208,7 +213,6 @@
                             </select>
                         </div>
 
-
                         <!-- Availability Filter -->
                         <div class="mb-3">
                             <label for="availability" class="form-label">Availability</label>
@@ -225,6 +229,7 @@
                             Filter
                         </button>
                     </form>
+
                 </div>
 
                 <!-- Librarian Actions -->

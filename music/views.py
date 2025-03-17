@@ -56,7 +56,7 @@ class CollectionsFrontView(ListView):
 
     def get_queryset(self):
         """
-        Returns items based on the selected collection, with privacy checks and filters.
+        Returns items based on the selected collection and item attributes, with privacy checks and filters.
         """
         collection_id = self.request.GET.get("collection")
         curr_user = get_user(self.request)
@@ -69,7 +69,7 @@ class CollectionsFrontView(ListView):
         if collection_id:
             collection = get_object_or_404(Collection, id=collection_id)
 
-            # Librarians can see all collections, Patrons can see accessible ones
+            # Librarians can see all collections; Patrons can see accessible ones
             if collection.public or user_type == 'Librarian' or (
                     user_type == 'Patron' and collection.is_accessible_by(curr_user)):
                 items = collection.items.all()
@@ -448,16 +448,54 @@ class ItemEditView(UpdateView):
     context_object_name = "item"
 
     def get_success_url(self):
-        # Redirect to the item detail page after successful edit
         return reverse_lazy('item_detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        description = form.cleaned_data['description']
+        image = form.cleaned_data.get('image')
+        allowed_extensions = ['jpg', 'jpeg', 'png']
+
+        in_public = False
+        in_private = False
+        num_private_collections = 0
+
+        for collection in form.cleaned_data['collections']:
+            if not collection.public:
+                in_private = True
+                num_private_collections += 1
+            else:
+                in_public = True
+
+        if not description.strip():
+            form.add_error('description', "Item description cannot be empty.")
+            messages.error(self.request, "Error: Item description cannot be empty.")
+            return self.form_invalid(form)
+        elif in_public and in_private:
+            form.add_error('collections', "Item cannot be in both a private and public collection.")
+            messages.error(self.request, "Error: Item cannot be in both a private and public collection.")
+            return self.form_invalid(form)
+        elif num_private_collections > 1:
+            form.add_error('collections', "Item cannot be in more than one private collection.")
+            messages.error(self.request, "Error: Item cannot be in more than one private collection.")
+            return self.form_invalid(form)
+        elif image:
+            ext = str(image.name).split('.')[-1].lower()
+            if ext not in allowed_extensions:
+                form.add_error('image', "Invalid file format. Only JPG, JPEG, and PNG are allowed.")
+                messages.error(self.request, "Error: Invalid file format. Only JPG, JPEG, and PNG are allowed.")
+                return self.form_invalid(form)
+
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "There are errors in the form. Please fix them and try again.")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
         context['user_type'] = user_type
-
         return context
 
     def dispatch(self, request, *args, **kwargs):
@@ -465,8 +503,10 @@ class ItemEditView(UpdateView):
         user_type = get_user_type(curr_user)
 
         if not curr_user.is_authenticated:
+            messages.error(request, "You must be logged in to edit an item.")
             return redirect(reverse("login_view"))
         elif user_type != "Librarian":
+            messages.error(request, "You do not have permission to edit this item.")
             return redirect("patron")
 
         return super().dispatch(request, *args, **kwargs)
