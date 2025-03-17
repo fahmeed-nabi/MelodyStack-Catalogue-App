@@ -461,7 +461,7 @@ class ItemEditView(UpdateView):
         return context
 
     def dispatch(self, request, *args, **kwargs):
-        curr_user = request.user
+        curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
 
         if not curr_user.is_authenticated:
@@ -475,7 +475,9 @@ class ItemEditView(UpdateView):
 class ItemDeleteView(DeleteView):
     model = Item
     template_name = 'music/item_confirm_delete.html'
-    success_url = '/success/'  # Redirect after successful deletion
+
+    def get_success_url(self):
+        return reverse('collections')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -483,11 +485,12 @@ class ItemDeleteView(DeleteView):
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
         context['user_type'] = user_type
+        context['item'] = self.get_object()
 
         return context
 
     def dispatch(self, request, *args, **kwargs):
-        curr_user = request.user
+        curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
 
         if not curr_user.is_authenticated:
