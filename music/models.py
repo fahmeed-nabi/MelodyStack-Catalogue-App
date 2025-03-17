@@ -71,6 +71,9 @@ class Collection(models.Model):
     private_users = models.ManyToManyField(
         Patron, related_name='accessible_collections', blank=True,  
     )  # Patrons allowed to view private collections
+    pending_users = models.ManyToManyField(
+        Patron, related_name='pending_collections', blank=True,
+    ) # Patrons who requested access to a private collection
 
     image = models.ImageField(default=None, upload_to='collection_images', blank=True, null=True)
 

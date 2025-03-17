@@ -62,14 +62,11 @@ class CollectionsFrontView(ListView):
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
 
-        # Base queryset: start with all items for filtering
         items = Item.objects.all()
 
-        # If a collection is selected, filter by collection and apply access control
         if collection_id:
             collection = get_object_or_404(Collection, id=collection_id)
 
-            # Librarians can see all collections; Patrons can see accessible ones
             if collection.public or user_type == 'Librarian' or (
                     user_type == 'Patron' and collection.is_accessible_by(curr_user)):
                 items = collection.items.all()
