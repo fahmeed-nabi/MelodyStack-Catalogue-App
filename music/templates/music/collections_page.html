@@ -280,7 +280,10 @@
                                 {% if item.status == 'BEING_REPAIRED' %}status-being-repaired{% endif %}">
                             </div>
                             <div class="card-body">
-                                <img src="{% if item.file_url %}{{ item.file_url }}{% else %}https://cdn4.iconfinder.com/data/icons/public-sign-part03/100/_-14-512.png{% endif %}" alt="{{ item.title }}" class="card-img-top mb-3" style="height: 200px; object-fit: cover;">
+                                <img src="{% if item.file_url %}{{ item.file_url }}{% else %}https://cdn4.iconfinder.com/data/icons/public-sign-part03/100/_-14-512.png{% endif %}"
+                                     alt="{{ item.title }}"
+                                     class="card-img-top mb-3"
+                                     style="height: 200px; object-fit: cover;">
                                 <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }}</h6>
                                 <p class="card-text text-secondary small">{{ item.description }}</p>
@@ -296,6 +299,7 @@
                     {% endfor %}
                 </div>
             </div>
+
 
             <!-- Status Legend -->
             <div class="col-md-2">

@@ -17,15 +17,15 @@ from mysite.settings import os.environ.get('BUCKET_NAME')
 
 def login_page(request):
     curr_user = get_user(request)
-    if (curr_user.is_anonymous):
+    if curr_user.is_anonymous:
         return render(request, "music/login_page.html")
 
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
 
-    if (librarians.exists()):
+    if librarians.exists():
         return redirect("librarian")
-    elif (patrons.exists()):
+    elif patrons.exists():
         return redirect("patron")
     else:
         return render(request, "music/login_page.html")
@@ -62,17 +62,18 @@ class CollectionsFrontView(ListView):
 
     def get_queryset(self):
         """
-        Returns items filtered by the selected collection and attributes.
+        Returns items filtered by the selected collection and attributes while ensuring
+        that private collections are not visible to unauthorized users.
         """
         collection_id = self.request.GET.get("collection")
         curr_user = self.request.user
         user_type = get_user_type(curr_user)
 
-        # Start with all items
+        # Start by fetching all items
         items = Item.objects.all()
 
         # Collection-based filtering
-        if collection_id:  # If a specific collection is selected
+        if collection_id:
             collection = get_object_or_404(Collection, id=collection_id)
 
             # Check if the user can access the collection
@@ -83,8 +84,21 @@ class CollectionsFrontView(ListView):
             else:
                 return redirect("unauthorized_collection", collection_id=collection.id)
 
+        # Exclude items in private collections that the user cannot access
+        else:
+            if user_type == "Patron":
+                accessible_collections = Collection.objects.filter(
+                    Q(public=True) | Q(private_users__user=curr_user)
+                )
+                items = items.filter(
+                    Q(collections__in=accessible_collections) | Q(collections=None)
+                ).distinct()
+            elif user_type != "Librarian":  # Non-logged-in users
+                items = items.filter(
+                    Q(collections__public=True) | Q(collections=None)
+                ).distinct()
+
         # Attribute-based filtering
-        # Add filters based on title, media_type, description, and status
         title = self.request.GET.get("title", "").strip()
         if title:
             items = items.filter(title__icontains=title)
@@ -120,9 +134,9 @@ class CollectionsFrontView(ListView):
         all_collections = Collection.objects.all()
         for collection in all_collections:
             collection.accessible = (
-                collection.public or
-                user_type == 'Librarian' or
-                (user_type == 'Patron' and collection.is_accessible_by(curr_user))
+                    collection.public or
+                    user_type == 'Librarian' or
+                    (user_type == 'Patron' and collection.is_accessible_by(curr_user))
             )
 
         context["collections"] = all_collections

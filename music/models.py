@@ -39,6 +39,22 @@ class Item(models.Model):
 
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
 
+    def is_accessible_by(self, user):
+        """
+        Check if a user can access this item.
+        An item is accessible if:
+        - It belongs to at least one public collection.
+        - It belongs to a private collection that the user has access to.
+        """
+        if self.collections.filter(public=True).exists():
+            return True
+
+        try:
+            patron = Patron.objects.get(user=user)
+            return self.collections.filter(private_users=patron).exists()
+        except Patron.DoesNotExist:
+            return False
+
     def __str__(self):
         return self.title
 
