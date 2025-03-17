@@ -18,5 +18,7 @@ urlpatterns = [
     path('item/<int:pk>/edit/', views.ItemEditView.as_view(), name='item_edit'),
     path('item/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path("collection/<int:collection_id>/unauthorized/", views.unauthorized_collection_view, name="unauthorized_collection"),
+    path('librarian/manage_collections/view_requests/<int:collection_id>/', views.view_private_collection_requests, name='view_requests'),
+    path('librarian/manage_collections/all_private_requests/', views.all_private_requests, name='all_private_requests'),
 ]
 

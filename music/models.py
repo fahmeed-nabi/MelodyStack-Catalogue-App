@@ -34,10 +34,10 @@ class Item(models.Model):
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
     average_rating = models.FloatField(default=0.0)
-
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
+    requested_by = models.ManyToManyField('Patron', related_name='requested_by', blank=True)
+    due_date = models.DateField(blank=True, null=True)
 
     def is_accessible_by(self, user):
         """
@@ -66,12 +66,15 @@ class Patron(models.Model):
     google_account = models.CharField(max_length=200)
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     date_joined = models.DateTimeField('date_joined')
+
     saved_items = models.ManyToManyField(Item, related_name='saved_items', blank=True)
+    borrowed_items = models.ManyToManyField(Item, related_name='borrowed_items', blank=True)
+    ratings_by = models.ManyToManyField('Rating', related_name='ratings_by', blank=True)
+    comments_by = models.ManyToManyField('Comment', related_name='comments_by', blank=True)
 
     # Optional info
     bio = models.CharField(max_length=250, blank=True)
     birthday = models.DateField(blank=True, null=True)
-    
 
     def __str__(self):
         return self.name
@@ -134,6 +137,7 @@ class Comment(models.Model):
     patron = models.ForeignKey(Patron, related_name='comments', on_delete=models.CASCADE)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    thumbs_up = models.IntegerField(default=0)
 
     def __str__(self):
         return f"Comment by {self.patron.name} on {self.item.title}"

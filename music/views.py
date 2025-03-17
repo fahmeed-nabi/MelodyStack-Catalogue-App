@@ -11,7 +11,6 @@ from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 from . import aws
 from .models import Item, Librarian, Patron, Collection
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm, FilterForm
-from . import utils
 from .utils import get_user_type, get_accessible_collections
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
@@ -180,7 +179,6 @@ def unauthorized_collection_view(request, collection_id):
             except Patron.DoesNotExist:
                 messages.error(request, "You must be a registered Patron to request access.")
 
-        # Action: "Cancel Request"
         elif action == "cancel_request" and access_requested:
             try:
                 patron = Patron.objects.get(user=user)
@@ -362,7 +360,7 @@ def create_collection_item(request):
     user_type = get_user_type(curr_user)
 
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
@@ -421,7 +419,7 @@ def create_collection_item(request):
     }
     return render(request, 'music/create_collection_item.html', context)
 
-
+@login_required
 def manage_collections(request):
     """
     View to display all collections for management.
@@ -430,13 +428,12 @@ def manage_collections(request):
     user_type = get_user_type(curr_user)
 
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
     collections = Collection.objects.all()
     return render(request, "music/manage_collections.html", {"collections": collections})
-
 
 @login_required
 def edit_collection(request, title):
@@ -445,7 +442,7 @@ def edit_collection(request, title):
 
     # Redirect non-authenticated users and non-Librarians
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
@@ -483,7 +480,7 @@ def delete_collection(request, title):
     user_type = get_user_type(curr_user)
 
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
@@ -497,6 +494,76 @@ def delete_collection(request, title):
 
     return render(request, 'music/delete_collection.html', {'collection': collection})
 
+
+@login_required
+def view_private_collection_requests(request, collection_id):
+    """
+    View to display and manage pending user requests for a private collection.
+    """
+    patrons = Patron.objects.all()
+
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    collection = get_object_or_404(Collection, id=collection_id)
+
+    if not collection.public:
+        pending_users = collection.pending_users.all()
+
+        if request.method == "POST":
+            action = request.POST.get("action")
+
+            if action == "approve_all":
+                # Approve all pending users
+                for user in pending_users:
+                    collection.pending_users.remove(user)
+                    collection.private_users.add(user)
+
+            elif action == "deny_all":
+                # Deny all pending users
+                for user in pending_users:
+                    collection.pending_users.remove(user)
+
+            elif action in ["approve", "deny"]:
+                user_id = request.POST.get("user_id")
+                user = get_object_or_404(Patron, id=user_id)
+
+                if action == "approve":
+                    collection.pending_users.remove(user)
+                    collection.private_users.add(user)
+                elif action == "deny":
+                    collection.pending_users.remove(user)
+
+            return redirect('view_requests', collection_id=collection.id)
+
+        return render(request, "music/private_collection_request.html", {
+            "collection": collection,
+            "pending_users": pending_users,
+            "patrons": patrons,
+        })
+
+@login_required
+def all_private_requests(request):
+    """
+    View to display all private collections with pending user requests.
+    """
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if user_type != "Librarian":
+        return redirect("patron")
+
+    # Fetch all private collections with pending users
+    private_collections_with_requests = Collection.objects.filter(public=False).filter(pending_users__isnull=False).distinct()
+
+    return render(request, "music/all_private_requests.html", {
+        "private_collections_with_requests": private_collections_with_requests,
+    })
 
 class ItemEditView(UpdateView):
     model = Item
@@ -561,7 +628,7 @@ class ItemEditView(UpdateView):
 
         if not curr_user.is_authenticated:
             messages.error(request, "You must be logged in to edit an item.")
-            return redirect(reverse("login_view"))
+            return redirect(reverse("login"))
         elif user_type != "Librarian":
             messages.error(request, "You do not have permission to edit this item.")
             return redirect("patron")
@@ -591,7 +658,7 @@ class ItemDeleteView(DeleteView):
         user_type = get_user_type(curr_user)
 
         if not curr_user.is_authenticated:
-            return redirect(reverse("login_view"))
+            return redirect(reverse("login"))
         elif user_type != "Librarian":
             return redirect("patron")
 
