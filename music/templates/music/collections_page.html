@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,7 +15,6 @@
         }
         .container {
             flex-grow: 1;
-            max-width: 95%; /* Reduced margin width */
         }
         footer {
             margin-top: auto;
@@ -69,23 +67,6 @@
         .card-footer {
             background-color: #ffffff;
         }
-        .header-title {
-            text-decoration: none;
-            color: white;
-        }
-        .header-title:hover {
-            text-decoration: underline;
-        }
-        .collection-description {
-            background-color: #ffffff;
-            border: 1px solid #e3e3e3;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            font-size: 1rem;
-            color: #333333;
-        }
         .status-indicator {
             position: absolute;
             top: 15px;
@@ -127,15 +108,44 @@
         .legend-being-repaired {
             background-color: gray;
         }
+        #collectionList {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* New CSS for header-title */
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            color: white;  /* Keep the link text white */
+            text-decoration: none;  /* Remove the underline */
+        }
+
+        .header-title:hover,
+        .header-title:focus,
+        .header-title:active {
+            color: white;  /* Ensure the link stays white on hover, focus, or click */
+            transform: scale(1.1);  /* Apply scaling on hover */
+            outline: none;  /* Remove focus outline */
+        }
     </style>
 </head>
 <body>
     {% load socialaccount %}
-    <header class="header d-flex justify-content-between align-items-center shadow-sm">
-        <h2 class="m-0 fw-normal">
-            <a href="/music/login/" class="header-title">Music Media Storefront</a>
+     <header class="header d-flex justify-content-between align-items-center shadow-sm py-3 px-4">
+        <h2 class="m-0 fw-bold text-white d-flex align-items-center">
+            <!-- Redirect based on user_type -->
+            <a href="{% if user_type == 'Librarian' %}/music/librarian/
+                     {% elif user_type == 'Patron' %}/music/patron/
+                     {% else %}/music/login/
+                     {% endif %}" class="header-title fs-2 text-decoration-none">Music Media Storefront</a>
         </h2>
 
+        <!-- Log Out or Login button -->
         {% if user_type == "Librarian" or user_type == "Patron" %}
             <a href="{% url 'logout_view' %}" class="btn btn-light btn-custom">Log Out</a>
         {% else %}
@@ -152,28 +162,72 @@
             {% endif %}
         </h1>
 
-        {% if active_collection and active_collection.description %}
-        <div class="collection-description text-center">
-            <p class="m-0">{{ active_collection.description }}</p>
-        </div>
+        {% if active_collection %}
+            <p class="text-center text-secondary mb-4">{{ active_collection.description }}</p>
         {% endif %}
 
-        <div class="row mt-4">
+        <div class="row">
+            <!-- Sidebar Section -->
             <div class="col-md-3">
                 <div class="sidebar">
                     <h5 class="fw-bold">Filter by Collection</h5>
-                    <a href="{% url 'collections' %}" class="{% if not active_collection %}active{% endif %}">All Collections</a>
-                    {% for collection in collections %}
-                        <a href="?collection={{ collection.id }}" class="{% if active_collection and active_collection.id == collection.id %}active{% endif %}">
-                            {{ collection.title }}
-                        </a>
-                    {% endfor %}
-                    <h5 class="fw-bold mt-4">Filter by Attributes</h5>
-                    <form>
-                        {{ filter_form }}
-                        <input class="mt-2" type="submit" value="Filter">
+                    <input type="text" id="collectionSearch" class="form-control mb-3" placeholder="Search collections...">
+
+                    <div id="collectionList">
+                        <a href="{% url 'collections' %}" class="{% if not active_collection %}active{% endif %}">All Collections</a>
+                        {% for collection in collections %}
+                            <a href="?collection={{ collection.id }}" class="collection-item {% if active_collection and active_collection.id == collection.id %}active{% endif %}">
+                                {{ collection.title }}
+                            </a>
+                        {% endfor %}
+                    </div>
+
+                    <h5 class="fw-bold mt-4">Filter by Item Attributes</h5>
+                    <form method="GET">
+                        <!-- Filter by Title -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" id="title" name="title" class="form-control" value="{{ request.GET.title }}">
+                        </div>
+
+                        <!-- Filter by Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <input type="text" id="description" name="description" class="form-control" value="{{ request.GET.description }}">
+                        </div>
+
+                        <!-- Media Type Filter -->
+                        <div class="mb-3">
+                            <label for="mediaType" class="form-label">Media Type</label>
+                            <select id="mediaType" name="media_type" class="form-select">
+                                <option value="" selected>Choose Media Type</option>
+                                <option value="CD" {% if request.GET.media_type == "CD" %}selected{% endif %}>CD</option>
+                                <option value="VINYL" {% if request.GET.media_type == "VINYL" %}selected{% endif %}>Vinyl</option>
+                                <option value="BLU_RAY" {% if request.GET.media_type == "BLU_RAY" %}selected{% endif %}>Blu-ray</option>
+                                <option value="CASSETTE" {% if request.GET.media_type == "CASSETTE" %}selected{% endif %}>Cassette</option>
+                            </select>
+                        </div>
+
+
+                        <!-- Availability Filter -->
+                        <div class="mb-3">
+                            <label for="availability" class="form-label">Availability</label>
+                            <select id="availability" name="status" class="form-select">
+                                <option value="" selected>Choose Availability</option>
+                                <option value="CHECKED_IN" {% if request.GET.status == "CHECKED_IN" %}selected{% endif %}>Checked In</option>
+                                <option value="IN_CIRCULATION" {% if request.GET.status == "IN_CIRCULATION" %}selected{% endif %}>In Circulation</option>
+                                <option value="BEING_REPAIRED" {% if request.GET.status == "BEING_REPAIRED" %}selected{% endif %}>Being Repaired</option>
+                            </select>
+                        </div>
+
+                        <!-- Filter Button -->
+                        <button class="btn btn-primary btn-lg w-100" type="submit">
+                            Filter
+                        </button>
                     </form>
                 </div>
+
+                <!-- Librarian Actions -->
                 {% if user_type == "Librarian" %}
                     <div class="mt-4">
                         <a href="{% url 'create_collection_item' %}" class="btn btn-success btn-custom w-100">Create New Collection or Item</a>
@@ -184,9 +238,10 @@
                 {% endif %}
             </div>
 
+            <!-- Main Content Display -->
             <div class="col-md-7">
                 <div class="row">
-                    {% for item in filtered_items %}
+                    {% for item in items %}
                     <div class="col-md-4 mb-4">
                         <div class="card h-100">
                             <div class="status-indicator
@@ -212,6 +267,7 @@
                 </div>
             </div>
 
+            <!-- Status Legend -->
             <div class="col-md-2">
                 <div class="legend">
                     <h6 class="fw-bold">Status Legend</h6>
@@ -223,7 +279,6 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-light py-3">
         <div class="container text-center">
             <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
@@ -231,5 +286,37 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('collectionSearch');
+            const collectionList = document.getElementById('collectionList');
+            const collectionItems = collectionList.getElementsByClassName('collection-item');
+
+            searchInput.addEventListener('input', function () {
+                const filter = searchInput.value.toLowerCase();
+                let visibleCount = 0;
+
+                Array.from(collectionItems).forEach((item) => {
+                    if (visibleCount < 6 && item.textContent.toLowerCase().indexOf(filter) > -1) {
+                        item.style.display = 'block';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+
+            // Initially display only the first 6 collections
+            let visibleCount = 0;
+            Array.from(collectionItems).forEach((item) => {
+                if (visibleCount < 6) {
+                    item.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

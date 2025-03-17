@@ -1,12 +1,12 @@
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.views import generic
 from django.contrib.auth import get_user, logout
 from django.utils import timezone
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 
 from . import aws
 from .models import Item, Librarian, Patron, Collection
@@ -56,12 +56,16 @@ class CollectionsFrontView(ListView):
 
     def get_queryset(self):
         """
-        Returns items based on the selected collection, with privacy checks.
+        Returns items based on the selected collection, with privacy checks and filters.
         """
         collection_id = self.request.GET.get("collection")
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
 
+        # Base queryset: start with all items for filtering
+        items = Item.objects.all()
+
+        # If a collection is selected, filter by collection and apply access control
         if collection_id:
             collection = get_object_or_404(Collection, id=collection_id)
 
@@ -72,27 +76,29 @@ class CollectionsFrontView(ListView):
             else:
                 return Item.objects.none()  # Return empty queryset for unauthorized access
 
-            # Attach file URLs
-            for item in items:
-                if item.image:
-                    item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
+        # Apply filters based on title, media_type, description, and status
+        filters = {}
+        title = self.request.GET.get("title", "").strip()
+        if title:
+            filters["title__icontains"] = title
 
-            return items  # Return early when filtering by collection
+        media_type = self.request.GET.get("media_type", "").strip()
+        if media_type:
+            filters["media_type__icontains"] = media_type
 
-        # Default: show all items that the user has access to
-        if user_type == 'Librarian':
-            items = Item.objects.all()
-        elif user_type == 'Patron':
-            no_collection_items = Item.objects.filter(collections__isnull=True)
-            accessible_collections = get_accessible_collections(curr_user)
-            accessible_items = Item.objects.filter(collections__in=accessible_collections)
-            items = accessible_items.union(no_collection_items)
-        else:  # Anonymous users
-            no_collection_items = Item.objects.filter(collections__isnull=True)
-            public_collection_items = Item.objects.filter(collections__public=True)
-            items = no_collection_items.union(public_collection_items)
+        description = self.request.GET.get("description", "").strip()
+        if description:
+            filters["description__icontains"] = description
 
-        # Attach file URLs
+        status = self.request.GET.get("status", "").strip()
+        if status:
+            filters["status"] = status  # Exact match for "status"
+
+        # Apply attribute filters if any
+        if filters:
+            items = items.filter(**filters)
+
+        # Attach file URLs for the filtered items
         for item in items:
             if item.image:
                 item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
@@ -106,58 +112,31 @@ class CollectionsFrontView(ListView):
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
 
+        # Start with base context
         context = super().get_context_data(**kwargs)
         collection_id = self.request.GET.get("collection")
 
-        # Only include collections that are public, or those accessible to the user
+        # Determine accessible collections based on user type
         if user_type in ["Librarian", "Patron"]:
             context["collections"] = get_accessible_collections(curr_user)
         else:
-            # For Anonymous users, only show public collections
+            # Anonymous users only see public collections
             context["collections"] = Collection.objects.filter(public=True)
 
+        # Active collection logic
         context["active_collection"] = None
         if collection_id:
             context["active_collection"] = get_object_or_404(Collection, id=collection_id)
 
         context["user_type"] = user_type
-
         context["filter_form"] = FilterForm()
 
+        # Extract filters from the query string for display purposes
         get_query_dict = self.request.GET
-        title = ""
-        if "title" in get_query_dict:
-            title = str(get_query_dict["title"])
-        media_type = ""
-        if "media_type" in get_query_dict:
-            media_type = str(get_query_dict["media_type"])
-        description = ""
-        if "description" in get_query_dict:
-            description = str(get_query_dict["description"])
-        
-        if title == "" and media_type == "" and description == "":
-            context["filtered_items"] = Item.objects.all()
-        elif title == "" and media_type == "" and description != "":
-            context["filtered_items"] = Item.objects.filter(
-                description__icontains=description)
-        elif title == "" and media_type != "" and description == "":
-            context["filtered_items"] = Item.objects.filter(
-                media_type__icontains=media_type)
-        elif title == "" and media_type != "" and description != "":
-            context["filtered_items"] = Item.objects.filter(
-                media_type__icontains=media_type, description__icontains=description)
-        elif title != "" and media_type == "" and description == "":
-            context["filtered_items"] = Item.objects.filter(
-                title__icontains=title)
-        elif title != "" and media_type == "" and description != "":
-            context["filtered_items"] = Item.objects.filter(
-                title__icontains=title, description__icontains=description)
-        elif title != "" and media_type != "" and description == "":
-            context["filtered_items"] = Item.objects.filter(
-                title__icontains=title, media_type__icontains=media_type)
-        elif title != "" and media_type != "" and description != "":
-            context["filtered_items"] = Item.objects.filter(
-                title__icontains=title, media_type__icontains=media_type, description__icontains=description)
+        context["title_filter"] = get_query_dict.get("title", "").strip()
+        context["media_type_filter"] = get_query_dict.get("media_type", "").strip()
+        context["description_filter"] = get_query_dict.get("description", "").strip()
+        context["status_filter"] = get_query_dict.get("status", "").strip()
 
         return context
 
@@ -177,6 +156,9 @@ class ItemDetailView(DetailView):
         """
         Add item data
         """
+        curr_user = get_user(self.request)
+        user_type = get_user_type(curr_user)
+
         context = super().get_context_data(**kwargs)
         item = self.get_object()
 
@@ -185,6 +167,8 @@ class ItemDetailView(DetailView):
             context['file_url'] = file_url
         else:
             context['file_url'] = None
+
+        context['user_type'] = user_type
 
         return context
 
@@ -455,3 +439,60 @@ def delete_collection(request, title):
         return redirect('manage_collections')
 
     return render(request, 'music/delete_collection.html', {'collection': collection})
+
+
+class ItemEditView(UpdateView):
+    model = Item
+    fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
+    template_name = "music/item_edit.html"
+    context_object_name = "item"
+
+    def get_success_url(self):
+        # Redirect to the item detail page after successful edit
+        return reverse_lazy('item_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        curr_user = get_user(self.request)
+        user_type = get_user_type(curr_user)
+        context['user_type'] = user_type
+
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        curr_user = request.user
+        user_type = get_user_type(curr_user)
+
+        if not curr_user.is_authenticated:
+            return redirect(reverse("login_view"))
+        elif user_type != "Librarian":
+            return redirect("patron")
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ItemDeleteView(DeleteView):
+    model = Item
+    template_name = 'music/item_confirm_delete.html'
+    success_url = '/success/'  # Redirect after successful deletion
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        curr_user = get_user(self.request)
+        user_type = get_user_type(curr_user)
+        context['user_type'] = user_type
+
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        curr_user = request.user
+        user_type = get_user_type(curr_user)
+
+        if not curr_user.is_authenticated:
+            return redirect(reverse("login_view"))
+        elif user_type != "Librarian":
+            return redirect("patron")
+
+        return super().dispatch(request, *args, **kwargs)

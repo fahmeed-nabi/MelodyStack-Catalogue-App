@@ -15,5 +15,7 @@ urlpatterns = [
     path('librarian/manage_collections/', views.manage_collections, name='manage_collections'),
     path('edit_collection/<slug:title>/', views.edit_collection, name='edit_collection'),
     path('delete_collection/<slug:title>/', views.delete_collection, name='delete_collection'),
+    path('item/<int:pk>/edit/', views.ItemEditView.as_view(), name='item_edit'),
+    path('item/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
 ]
 
