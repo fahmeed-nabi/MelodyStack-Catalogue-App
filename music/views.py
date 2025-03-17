@@ -62,30 +62,49 @@ class CollectionsFrontView(ListView):
 
     def get_queryset(self):
         """
-        Returns items for the selected collection or all items if no collection is selected.
-        Handles unauthorized access by redirecting users to a separate page.
+        Returns items filtered by the selected collection and attributes.
         """
         collection_id = self.request.GET.get("collection")
         curr_user = self.request.user
-        user_type = get_user_type(curr_user)  # Custom function to determine user type
+        user_type = get_user_type(curr_user)
 
+        # Start with all items
         items = Item.objects.all()
 
-        if collection_id:  # If a collection is selected
+        # Collection-based filtering
+        if collection_id:  # If a specific collection is selected
             collection = get_object_or_404(Collection, id=collection_id)
 
             # Check if the user can access the collection
             if collection.public or user_type == "Librarian" or (
-                user_type == "Patron" and collection.is_accessible_by(curr_user)
+                    user_type == "Patron" and collection.is_accessible_by(curr_user)
             ):
-                return collection.items.all()  # Authorized access to collection items
+                items = collection.items.all()  # Limit to items in the selected collection
+            else:
+                return redirect("unauthorized_collection", collection_id=collection.id)
 
-            # Redirect to unauthorized access view
-            return redirect("unauthorized_collection", collection_id=collection.id)
+        # Attribute-based filtering
+        # Add filters based on title, media_type, description, and status
+        title = self.request.GET.get("title", "").strip()
+        if title:
+            items = items.filter(title__icontains=title)
 
+        media_type = self.request.GET.get("media_type", "").strip()
+        if media_type:
+            items = items.filter(media_type__icontains=media_type)
+
+        description = self.request.GET.get("description", "").strip()
+        if description:
+            items = items.filter(description__icontains=description)
+
+        status = self.request.GET.get("status", "").strip()
+        if status:
+            items = items.filter(status=status)  # Exact match for "status"
+
+        # Attach file URLs for the filtered items
         for item in items:
             if item.image:
-                item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
+                item.file_url = item.image.url  # Use `.url` attribute of ImageField
 
         return items
 
