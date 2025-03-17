@@ -50,52 +50,39 @@ def redir(request):
         return redirect("patron")
 
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic import ListView
+from .models import Collection, Item, Patron
+from .forms import FilterForm
+
+
 class CollectionsFrontView(ListView):
     template_name = "music/collections_page.html"
     context_object_name = "items"
 
     def get_queryset(self):
         """
-        Returns items based on the selected collection and item attributes, with privacy checks and filters.
+        Returns items for the selected collection or all items if no collection is selected.
+        Handles unauthorized access by redirecting users to a separate page.
         """
         collection_id = self.request.GET.get("collection")
-        curr_user = get_user(self.request)
-        user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
+        curr_user = self.request.user
+        user_type = get_user_type(curr_user)  # Custom function to determine user type
 
         items = Item.objects.all()
 
-        if collection_id:
+        if collection_id:  # If a collection is selected
             collection = get_object_or_404(Collection, id=collection_id)
 
-            if collection.public or user_type == 'Librarian' or (
-                    user_type == 'Patron' and collection.is_accessible_by(curr_user)):
-                items = collection.items.all()
-            else:
-                return Item.objects.none()  # Return empty queryset for unauthorized access
+            # Check if the user can access the collection
+            if collection.public or user_type == "Librarian" or (
+                user_type == "Patron" and collection.is_accessible_by(curr_user)
+            ):
+                return collection.items.all()  # Authorized access to collection items
 
-        # Apply filters based on title, media_type, description, and status
-        filters = {}
-        title = self.request.GET.get("title", "").strip()
-        if title:
-            filters["title__icontains"] = title
+            # Redirect to unauthorized access view
+            return redirect("unauthorized_collection", collection_id=collection.id)
 
-        media_type = self.request.GET.get("media_type", "").strip()
-        if media_type:
-            filters["media_type__icontains"] = media_type
-
-        description = self.request.GET.get("description", "").strip()
-        if description:
-            filters["description__icontains"] = description
-
-        status = self.request.GET.get("status", "").strip()
-        if status:
-            filters["status"] = status  # Exact match for "status"
-
-        # Apply attribute filters if any
-        if filters:
-            items = items.filter(**filters)
-
-        # Attach file URLs for the filtered items
         for item in items:
             if item.image:
                 item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
@@ -104,38 +91,78 @@ class CollectionsFrontView(ListView):
 
     def get_context_data(self, **kwargs):
         """
-        Add all collections, the selected collection, and form data to the context.
+        Add all collections with accessibility info and other relevant context data.
         """
-        curr_user = get_user(self.request)
-        user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
-
-        # Start with base context
         context = super().get_context_data(**kwargs)
+        curr_user = self.request.user
+        user_type = get_user_type(curr_user)
+
+        # Annotate all collections with access information
+        all_collections = Collection.objects.all()
+        for collection in all_collections:
+            collection.accessible = (
+                collection.public or
+                user_type == 'Librarian' or
+                (user_type == 'Patron' and collection.is_accessible_by(curr_user))
+            )
+
+        context["collections"] = all_collections
         collection_id = self.request.GET.get("collection")
-
-        # Determine accessible collections based on user type
-        if user_type in ["Librarian", "Patron"]:
-            context["collections"] = get_accessible_collections(curr_user)
-        else:
-            # Anonymous users only see public collections
-            context["collections"] = Collection.objects.filter(public=True)
-
-        # Active collection logic
-        context["active_collection"] = None
         if collection_id:
             context["active_collection"] = get_object_or_404(Collection, id=collection_id)
+        else:
+            context["active_collection"] = None
 
         context["user_type"] = user_type
         context["filter_form"] = FilterForm()
-
-        # Extract filters from the query string for display purposes
-        get_query_dict = self.request.GET
-        context["title_filter"] = get_query_dict.get("title", "").strip()
-        context["media_type_filter"] = get_query_dict.get("media_type", "").strip()
-        context["description_filter"] = get_query_dict.get("description", "").strip()
-        context["status_filter"] = get_query_dict.get("status", "").strip()
-
         return context
+
+
+@login_required
+def unauthorized_collection_view(request, collection_id):
+    """
+    Handles unauthorized access and actions for requesting or canceling access.
+    """
+    collection = get_object_or_404(Collection, id=collection_id)
+    user = request.user
+    user_type = get_user_type(user)
+
+    if user_type != "Patron":
+        return redirect("collections")
+
+    # Determine if the user has already requested access to this collection
+    access_requested = collection.pending_users.filter(user=user).exists()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        # Action: "Request Access"
+        if action == "request_access" and not access_requested:
+            try:
+                patron = Patron.objects.get(user=user)
+                collection.pending_users.add(patron)
+                collection.save()
+                messages.success(request, "Your access request has been submitted.")
+                access_requested = True  # Update flag
+            except Patron.DoesNotExist:
+                messages.error(request, "You must be a registered Patron to request access.")
+
+        # Action: "Cancel Request"
+        elif action == "cancel_request" and access_requested:
+            try:
+                patron = Patron.objects.get(user=user)
+                collection.pending_users.remove(patron)
+                collection.save()
+                messages.success(request, "Your access request has been canceled.")
+                access_requested = False  # Update flag
+            except Patron.DoesNotExist:
+                messages.error(request, "You are not a registered Patron.")
+
+    return render(
+        request,
+        "music/unauthorized_access.html",
+        {"collection": collection, "access_requested": access_requested},
+    )
 
 
 class ItemDetailView(DetailView):

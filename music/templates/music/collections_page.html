@@ -174,13 +174,38 @@
                     <input type="text" id="collectionSearch" class="form-control mb-3" placeholder="Search Collections...">
 
                     <div id="collectionList">
-                        <a href="{% url 'collections' %}" class="{% if not active_collection %}active{% endif %}">All Collections</a>
+                        <!-- "All Collections" Button -->
+                        <a href="{% url 'collections' %}" class="collection-item {% if not active_collection %}active{% endif %}">
+                            All Collections
+                        </a>
+
+                        <!-- Individual Collections -->
                         {% for collection in collections %}
-                            <a href="?collection={{ collection.id }}" class="collection-item {% if active_collection and active_collection.id == collection.id %}active{% endif %}">
-                                {{ collection.title }}
-                            </a>
+                            {% if collection.accessible %}
+                                <!-- Route to collection items if accessible -->
+                                <a href="?collection={{ collection.id }}"
+                                   class="collection-item {% if active_collection and active_collection.id == collection.id %}active{% endif %}">
+                                    {{ collection.title }}
+                                </a>
+                            {% elif user_type == 'Anonymous' %}
+                                <!-- Redirect Anonymous user to login if accessing private -->
+                                <a href="{% url 'login' %}"
+                                   class="collection-item text-danger">
+                                    {{ collection.title }}
+                                </a>
+                            {% else %}
+                                <!-- Route Patron and Librarian to unauthorized page -->
+                                <a href="{% url 'unauthorized_collection' collection.id %}"
+                                   class="collection-item text-danger">
+                                    {{ collection.title }} <!--(Private)-->
+                                </a>
+                            {% endif %}
                         {% endfor %}
                     </div>
+
+
+
+
 
                     <h5 class="fw-bold mt-4">Filter by Item Attributes</h5>
                     <form method="GET">
