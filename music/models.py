@@ -32,7 +32,7 @@ class Item(models.Model):
     image = models.ImageField(
         default=None, upload_to='item_images', blank=True, null=True
     )
-    collections = models.ManyToManyField('Collection', related_name='items', blank=True)
+    collections = models.ManyToManyField('Collection', related_name='items', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     average_rating = models.FloatField(default=0.0)
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
@@ -46,9 +46,8 @@ class Item(models.Model):
         - It belongs to at least one public collection.
         - It belongs to a private collection that the user has access to.
         """
-        if self.collections.filter(public=True).exists():
+        if self.collections.filter(public=True).exists() or self.collections is None:
             return True
-
         try:
             patron = Patron.objects.get(user=user)
             return self.collections.filter(private_users=patron).exists()
