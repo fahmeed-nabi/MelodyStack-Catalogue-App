@@ -48,13 +48,6 @@ def redir(request):
         )
         return redirect("patron")
 
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView
-from .models import Collection, Item, Patron
-from .forms import FilterForm
-
-
 class CollectionsFrontView(ListView):
     template_name = "music/collections_page.html"
     context_object_name = "items"
@@ -484,7 +477,6 @@ def delete_collection(request, title):
     elif user_type != "Librarian":
         return redirect("patron")
 
-    # Convert slugified title back to its original form
     original_title = title.replace('-', ' ')
     collection = get_object_or_404(Collection, Q(title__iexact=original_title))
 
