@@ -93,6 +93,7 @@ class Collection(models.Model):
     pending_users = models.ManyToManyField(
         Patron, related_name='pending_collections', blank=True,
     ) # Patrons who requested access to a private collection
+    # creator = models.ForeignKey('Patron', on_delete=models.CASCADE, related_name='creator')
 
     image = models.ImageField(default=None, upload_to='collection_images', blank=True, null=True)
 
