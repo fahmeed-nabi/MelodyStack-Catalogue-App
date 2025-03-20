@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from . import aws
+from mysite.settings import os.environ.get('BUCKET_NAME')
 
 User = get_user_model()
 
@@ -54,6 +56,11 @@ class Item(models.Model):
         except Patron.DoesNotExist:
             return False
 
+    def delete(self, *args, **kwargs):
+        if self.image:
+            aws.delete_file(self.image.name, os.environ.get('BUCKET_NAME'))
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.title
 
@@ -78,8 +85,25 @@ class Patron(models.Model):
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        if self.profile_picture:
+            aws.delete_file(self.profile_picture.name, os.environ.get('BUCKET_NAME'))
+        super().delete(*args, **kwargs)
+
     def get_user_type(self):
         return 'Patron'
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = Patron.objects.get(pk=self.pk)
+                # If a new profile picture is being uploaded, delete the old one
+                if old_instance.profile_picture and old_instance.profile_picture != self.profile_picture:
+                    aws.delete_file(old_instance.profile_picture.name, os.environ.get('BUCKET_NAME'))
+            except Patron.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
 
 
 class Collection(models.Model):
@@ -158,9 +182,23 @@ class Librarian(models.Model):
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        if self.profile_picture:
+            aws.delete_file(self.profile_picture.name, os.environ.get('BUCKET_NAME'))
+        super().delete(*args, **kwargs)
+
     def get_user_type(self):
         return 'Librarian'
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = Librarian.objects.get(pk=self.pk)
+                # If a new profile picture is being uploaded, delete the old one
+                if old_instance.profile_picture and old_instance.profile_picture != self.profile_picture:
+                    aws.delete_file(old_instance.profile_picture.name, os.environ.get('BUCKET_NAME'))
+            except Librarian.DoesNotExist:
+                pass
 
-
+        super().save(*args, **kwargs)
 
