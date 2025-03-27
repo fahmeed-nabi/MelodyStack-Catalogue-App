@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.utils.text import slugify
 from . import aws
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
@@ -116,9 +117,9 @@ class Collection(models.Model):
     pending_users = models.ManyToManyField(
         Patron, related_name='pending_collections', blank=True,
     ) # Patrons who requested access to a private collection
-    # creator = models.ForeignKey('Patron', on_delete=models.CASCADE, related_name='creator')
 
-    image = models.ImageField(default=None, upload_to='collection_images', blank=True, null=True)
+    # Only assign to Patron since Librarian can access/edit any Collection
+    creator = models.ForeignKey('Patron', on_delete=models.CASCADE, related_name='creator', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

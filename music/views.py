@@ -429,9 +429,11 @@ def manage_collections(request):
     return render(request, "music/manage_collections.html", {"collections": collections})
 
 @login_required
-def edit_collection(request, title):
+def edit_collection(request, title, collection_id):
     curr_user = get_user(request)
     user_type = get_user_type(curr_user)
+
+    collection_title = Collection.objects.get(id=collection_id).title
 
     # Redirect non-authenticated users and non-Librarians
     if not request.user.is_authenticated:
@@ -439,9 +441,7 @@ def edit_collection(request, title):
     elif user_type != "Librarian":
         return redirect("patron")
 
-    # Convert slugified title back to its original form
-    original_title = title.replace('-', ' ')
-    collection = get_object_or_404(Collection, title__iexact=original_title)
+    collection = get_object_or_404(Collection, id=collection_id)
 
     # Form initialization
     collection_form = CollectionForm(instance=collection)
@@ -452,8 +452,7 @@ def edit_collection(request, title):
         if "submit_collection" in request.POST:  # User is editing the Collection
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title=title).exclude(
-                        id=collection.id).exists():  # Check for duplicate titles
+                if Collection.objects.filter(title=title).exists():  # Check for duplicate titles
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
@@ -468,7 +467,7 @@ def edit_collection(request, title):
     }
     return render(request, 'music/edit_collection.html', context)
 
-def delete_collection(request, title):
+def delete_collection(request, title, collection_id):
     curr_user = get_user(request)
     user_type = get_user_type(curr_user)
 
@@ -477,8 +476,7 @@ def delete_collection(request, title):
     elif user_type != "Librarian":
         return redirect("patron")
 
-    original_title = title.replace('-', ' ')
-    collection = get_object_or_404(Collection, Q(title__iexact=original_title))
+    collection = get_object_or_404(Collection, Q(id=collection_id))
 
     if request.method == "POST":
         collection.delete()
@@ -655,3 +653,129 @@ class ItemDeleteView(DeleteView):
             return redirect("patron")
 
         return super().dispatch(request, *args, **kwargs)
+
+
+@login_required
+def create_collection_patron(request):
+    curr_user = request.user  # Get the logged-in user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    if user_type != "Patron":
+        return redirect("librarian")
+
+    if request.method == 'POST':
+        collection_form = CollectionForm(request.POST)
+
+        if collection_form.is_valid():
+            title = collection_form.cleaned_data['title']
+            # Check for duplicate titles
+            if Collection.objects.filter(title=title).exists():
+                messages.error(request, f"A Collection with the title '{title}' already exists.")
+                return redirect("create_collection_patron")
+
+            collection = collection_form.save(commit=False)
+            collection.creator = curr_patron
+            collection.public = True  # Forces the collection to be public
+
+            collection.save()
+
+            return redirect("collections")
+        else:
+            messages.error(request, "There was an error creating the collection. Please check the form and try again.")
+
+    else:
+        collection_form = CollectionForm()
+
+    context = {
+        'collection_form': collection_form,
+    }
+    return render(request, 'music/create_collection_patron.html', context)
+
+@login_required
+def manage_collections_patron(request):
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("librarian")
+
+    # Filter collections based on the creator
+    collections = Collection.objects.filter(creator=curr_patron)
+
+    context = {
+        "collections": collections,
+    }
+    return render(request, "music/manage_collections_patron.html", context)
+
+
+@login_required
+def edit_collection_patron(request, title, collection_id):
+    """
+    View for Patrons to edit collections they created.
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    collection_title = Collection.objects.get(id=collection_id).title
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("patron")
+
+    collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
+
+    collection_form = CollectionForm(instance=collection)
+
+    if request.method == 'POST':
+        collection_form = CollectionForm(request.POST, instance=collection)
+
+        if "submit_collection" in request.POST:
+            if collection_form.is_valid():
+                title = collection_form.cleaned_data['title']
+                if Collection.objects.filter(title=title).exists():  # Check for duplicate titles
+                    messages.error(request, f"A Collection with the title '{title}' already exists.")
+                else:
+                    collection.public = True  # Forces the collection to be public
+                    collection_form.save()
+                    return redirect('manage_collections_patron')
+            else:
+                messages.error(request, "There was an error updating the collection. Please check the form.")
+
+    context = {
+        'collection_form': collection_form,
+        'collection': collection,
+    }
+    return render(request, 'music/edit_collection_patron.html', context)
+
+
+@login_required
+def delete_collection_patron(request, title, collection_id):
+    """
+    View for Patrons to delete collections they created.
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    collection_title = Collection.objects.get(id=collection_id).title
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("patron")
+
+    original_title = title.replace('-', ' ')
+    collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
+
+    if request.method == "POST":
+        collection.delete()
+        return redirect('manage_collections_patron')  # Redirect to Patron's collections page
+
+    return render(request, 'music/delete_collection_patron.html', {'collection': collection})
+
