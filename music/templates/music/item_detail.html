@@ -48,6 +48,11 @@
             top: 15px;  /* Adjust position from the top */
             right: 15px; /* Adjust position from the right */
         }
+        .request-btn {
+            position: absolute;
+            bottom: 20px;  /* Adjust position from the top */
+            right: 20px; /* Adjust position from the right */
+        }
 
         /* Sticky Footer */
         footer {
@@ -99,6 +104,7 @@
 
                 <p class="text-secondary">{{ item.description }}</p>
 
+                <p><strong>Owner:</strong> {{ item.owner.first_name }}</p>
                 <p><strong>Status:</strong> {{ item.get_status_display }}</p>
                 <p><strong>Location:</strong> {{ item.location }}</p>
                 <p><strong>Average Rating:</strong> {{ item.average_rating }}/5</p>
@@ -117,6 +123,10 @@
                         </ul>
                     </div>
                 {% endif %}
+
+                <div class="request-btn">
+                    <a href="{% url 'collections' %}" class="btn btn-success btn-custom mt-3">Borrow Item</a>
+                </div>
 
                 <a href="{% url 'collections' %}" class="btn btn-primary btn-custom mt-3">Back to Collection</a>
             </div>
