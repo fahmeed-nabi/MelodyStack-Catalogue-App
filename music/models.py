@@ -11,7 +11,6 @@ class Item(models.Model):
         ('IN_CIRCULATION', 'In Circulation'),
         ('BEING_REPAIRED', 'Being Repaired')
     ]
-
     MEDIA_TYPE_CHOICES = [
         ('CD', 'CD'),
         ('VINYL', 'Vinyl'),
@@ -37,6 +36,8 @@ class Item(models.Model):
 
     average_rating = models.FloatField(default=0.0)
 
+    owner = models.ForeignKey(User, related_name="owner", on_delete=models.CASCADE, blank=True)
+
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
 
     def __str__(self):
@@ -44,7 +45,6 @@ class Item(models.Model):
 
 
 class Patron(models.Model):
-#    primary_key = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patron_user", default=None)
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)

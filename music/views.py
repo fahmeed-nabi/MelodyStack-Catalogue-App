@@ -4,9 +4,11 @@ from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.views import generic
-from django.contrib.auth import get_user, logout
+from django.contrib.auth import get_user, logout, get_user_model
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView
+
+User = get_user_model()
 
 from . import aws
 from .models import Item, Librarian, Patron, Collection
@@ -345,7 +347,9 @@ def create_collection_item(request):
                 elif num_private_collections > 1:
                     messages.error(request, "Item cannot be in more than one private collection.")
                 else:
-                    item_form.save()
+                    new_item = item_form.save(commit=False)
+                    new_item.owner = curr_user
+                    new_item.save()
                     return redirect('collections')
             else:
                 messages.error(request, "Failed to create the item. Please upload an image in .jpg, .jpeg, or .png format.")
