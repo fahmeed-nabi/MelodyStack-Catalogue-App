@@ -13,21 +13,20 @@ User = get_user_model()
 from . import aws
 from .models import Item, Librarian, Patron, Collection
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm, FilterForm
-from . import utils
 from .utils import get_user_type, get_accessible_collections
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
 def login_page(request):
     curr_user = get_user(request)
-    if (curr_user.is_anonymous):
+    if curr_user.is_anonymous:
         return render(request, "music/login_page.html")
 
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
 
-    if (librarians.exists()):
+    if librarians.exists():
         return redirect("librarian")
-    elif (patrons.exists()):
+    elif patrons.exists():
         return redirect("patron")
     else:
         return render(request, "music/login_page.html")
@@ -51,54 +50,64 @@ def redir(request):
         )
         return redirect("patron")
 
-
 class CollectionsFrontView(ListView):
     template_name = "music/collections_page.html"
     context_object_name = "items"
 
     def get_queryset(self):
         """
-        Returns items based on the selected collection, with privacy checks and filters.
+        Returns items filtered by the selected collection and attributes while ensuring
+        that private collections are not visible to unauthorized users.
         """
         collection_id = self.request.GET.get("collection")
-        curr_user = get_user(self.request)
-        user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
+        curr_user = self.request.user
+        user_type = get_user_type(curr_user)
 
-        # Base queryset: start with all items for filtering
+        # Start by fetching all items
         items = Item.objects.all()
 
-        # If a collection is selected, filter by collection and apply access control
+        # Collection-based filtering
         if collection_id:
             collection = get_object_or_404(Collection, id=collection_id)
 
-            # Librarians can see all collections, Patrons can see accessible ones
-            if collection.public or user_type == 'Librarian' or (
-                    user_type == 'Patron' and collection.is_accessible_by(curr_user)):
-                items = collection.items.all()
+            # Check if the user can access the collection
+            if collection.public or user_type == "Librarian" or (
+                    user_type == "Patron" and collection.is_accessible_by(curr_user)
+            ):
+                items = collection.items.all()  # Limit to items in the selected collection
             else:
-                return Item.objects.none()  # Return empty queryset for unauthorized access
+                return redirect("unauthorized_collection", collection_id=collection.id)
 
-        # Apply filters based on title, media_type, description, and status
-        filters = {}
+        # Exclude items in private collections that the user cannot access
+        else:
+            if user_type == "Patron":
+                accessible_collections = Collection.objects.filter(
+                    Q(public=True) | Q(private_users__user=curr_user)
+                )
+                items = items.filter(
+                    Q(collections__in=accessible_collections) | Q(collections=None)
+                ).distinct()
+            elif user_type != "Librarian":  # Non-logged-in users
+                items = items.filter(
+                    Q(collections__public=True) | Q(collections=None)
+                ).distinct()
+
+        # Attribute-based filtering
         title = self.request.GET.get("title", "").strip()
         if title:
-            filters["title__icontains"] = title
+            items = items.filter(title__icontains=title)
 
         media_type = self.request.GET.get("media_type", "").strip()
         if media_type:
-            filters["media_type__icontains"] = media_type
+            items = items.filter(media_type__icontains=media_type)
 
         description = self.request.GET.get("description", "").strip()
         if description:
-            filters["description__icontains"] = description
+            items = items.filter(description__icontains=description)
 
         status = self.request.GET.get("status", "").strip()
         if status:
-            filters["status"] = status  # Exact match for "status"
-
-        # Apply attribute filters if any
-        if filters:
-            items = items.filter(**filters)
+            items = items.filter(status=status)  # Exact match for "status"
 
         # Attach file URLs for the filtered items
         for item in items:
@@ -109,38 +118,77 @@ class CollectionsFrontView(ListView):
 
     def get_context_data(self, **kwargs):
         """
-        Add all collections, the selected collection, and form data to the context.
+        Add all collections with accessibility info and other relevant context data.
         """
-        curr_user = get_user(self.request)
-        user_type = get_user_type(curr_user)  # "Librarian", "Patron", or "Anonymous"
-
-        # Start with base context
         context = super().get_context_data(**kwargs)
+        curr_user = self.request.user
+        user_type = get_user_type(curr_user)
+
+        # Annotate all collections with access information
+        all_collections = Collection.objects.all()
+        for collection in all_collections:
+            collection.accessible = (
+                    collection.public or
+                    user_type == 'Librarian' or
+                    (user_type == 'Patron' and collection.is_accessible_by(curr_user))
+            )
+
+        context["collections"] = all_collections
         collection_id = self.request.GET.get("collection")
-
-        # Determine accessible collections based on user type
-        if user_type in ["Librarian", "Patron"]:
-            context["collections"] = get_accessible_collections(curr_user)
-        else:
-            # Anonymous users only see public collections
-            context["collections"] = Collection.objects.filter(public=True)
-
-        # Active collection logic
-        context["active_collection"] = None
         if collection_id:
             context["active_collection"] = get_object_or_404(Collection, id=collection_id)
+        else:
+            context["active_collection"] = None
 
         context["user_type"] = user_type
         context["filter_form"] = FilterForm()
-
-        # Extract filters from the query string for display purposes
-        get_query_dict = self.request.GET
-        context["title_filter"] = get_query_dict.get("title", "").strip()
-        context["media_type_filter"] = get_query_dict.get("media_type", "").strip()
-        context["description_filter"] = get_query_dict.get("description", "").strip()
-        context["status_filter"] = get_query_dict.get("status", "").strip()
-
         return context
+
+
+@login_required
+def unauthorized_collection_view(request, collection_id):
+    """
+    Handles unauthorized access and actions for requesting or canceling access.
+    """
+    collection = get_object_or_404(Collection, id=collection_id)
+    user = request.user
+    user_type = get_user_type(user)
+
+    if user_type != "Patron":
+        return redirect("collections")
+
+    # Determine if the user has already requested access to this collection
+    access_requested = collection.pending_users.filter(user=user).exists()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        # Action: "Request Access"
+        if action == "request_access" and not access_requested:
+            try:
+                patron = Patron.objects.get(user=user)
+                collection.pending_users.add(patron)
+                collection.save()
+                messages.success(request, "Your access request has been submitted.")
+                access_requested = True  # Update flag
+            except Patron.DoesNotExist:
+                messages.error(request, "You must be a registered Patron to request access.")
+
+        elif action == "cancel_request" and access_requested:
+            try:
+                patron = Patron.objects.get(user=user)
+                collection.pending_users.remove(patron)
+                collection.save()
+                messages.success(request, "Your access request has been canceled.")
+                access_requested = False  # Update flag
+            except Patron.DoesNotExist:
+                messages.error(request, "You are not a registered Patron.")
+
+    return render(
+        request,
+        "music/unauthorized_access.html",
+        {"collection": collection, "access_requested": access_requested},
+    )
 
 
 class ItemDetailView(DetailView):
@@ -307,7 +355,7 @@ def create_collection_item(request):
     user_type = get_user_type(curr_user)
 
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
@@ -368,7 +416,7 @@ def create_collection_item(request):
     }
     return render(request, 'music/create_collection_item.html', context)
 
-
+@login_required
 def manage_collections(request):
     """
     View to display all collections for management.
@@ -377,28 +425,27 @@ def manage_collections(request):
     user_type = get_user_type(curr_user)
 
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
     collections = Collection.objects.all()
     return render(request, "music/manage_collections.html", {"collections": collections})
 
-
 @login_required
-def edit_collection(request, title):
+def edit_collection(request, title, collection_id):
     curr_user = get_user(request)
     user_type = get_user_type(curr_user)
 
+    collection_title = Collection.objects.get(id=collection_id).title
+
     # Redirect non-authenticated users and non-Librarians
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
-    # Convert slugified title back to its original form
-    original_title = title.replace('-', ' ')
-    collection = get_object_or_404(Collection, title__iexact=original_title)
+    collection = get_object_or_404(Collection, id=collection_id)
 
     # Form initialization
     collection_form = CollectionForm(instance=collection)
@@ -409,8 +456,7 @@ def edit_collection(request, title):
         if "submit_collection" in request.POST:  # User is editing the Collection
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title=title).exclude(
-                        id=collection.id).exists():  # Check for duplicate titles
+                if Collection.objects.filter(title=title).exists():  # Check for duplicate titles
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
@@ -425,18 +471,16 @@ def edit_collection(request, title):
     }
     return render(request, 'music/edit_collection.html', context)
 
-def delete_collection(request, title):
+def delete_collection(request, title, collection_id):
     curr_user = get_user(request)
     user_type = get_user_type(curr_user)
 
     if not request.user.is_authenticated:
-        return redirect(reverse("login_view"))
+        return redirect(reverse("login"))
     elif user_type != "Librarian":
         return redirect("patron")
 
-    # Convert slugified title back to its original form
-    original_title = title.replace('-', ' ')
-    collection = get_object_or_404(Collection, Q(title__iexact=original_title))
+    collection = get_object_or_404(Collection, Q(id=collection_id))
 
     if request.method == "POST":
         collection.delete()
@@ -445,6 +489,76 @@ def delete_collection(request, title):
     return render(request, 'music/delete_collection.html', {'collection': collection})
 
 
+@login_required
+def view_private_collection_requests(request, collection_id):
+    """
+    View to display and manage pending user requests for a private collection.
+    """
+    patrons = Patron.objects.all()
+
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    collection = get_object_or_404(Collection, id=collection_id)
+
+    if not collection.public:
+        pending_users = collection.pending_users.all()
+
+        if request.method == "POST":
+            action = request.POST.get("action")
+
+            if action == "approve_all":
+                # Approve all pending users
+                for user in pending_users:
+                    collection.pending_users.remove(user)
+                    collection.private_users.add(user)
+
+            elif action == "deny_all":
+                # Deny all pending users
+                for user in pending_users:
+                    collection.pending_users.remove(user)
+
+            elif action in ["approve", "deny"]:
+                user_id = request.POST.get("user_id")
+                user = get_object_or_404(Patron, id=user_id)
+
+                if action == "approve":
+                    collection.pending_users.remove(user)
+                    collection.private_users.add(user)
+                elif action == "deny":
+                    collection.pending_users.remove(user)
+
+            return redirect('view_requests', collection_id=collection.id)
+
+        return render(request, "music/private_collection_request.html", {
+            "collection": collection,
+            "pending_users": pending_users,
+            "patrons": patrons,
+        })
+
+@login_required
+def all_private_requests(request):
+    """
+    View to display all private collections with pending user requests.
+    """
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if user_type != "Librarian":
+        return redirect("patron")
+
+    # Fetch all private collections with pending users
+    private_collections_with_requests = Collection.objects.filter(public=False).filter(pending_users__isnull=False).distinct()
+
+    return render(request, "music/all_private_requests.html", {
+        "private_collections_with_requests": private_collections_with_requests,
+    })
+
 class ItemEditView(UpdateView):
     model = Item
     fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
@@ -452,25 +566,65 @@ class ItemEditView(UpdateView):
     context_object_name = "item"
 
     def get_success_url(self):
-        # Redirect to the item detail page after successful edit
         return reverse_lazy('item_detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        description = form.cleaned_data['description']
+        image = form.cleaned_data.get('image')
+        allowed_extensions = ['jpg', 'jpeg', 'png']
+
+        in_public = False
+        in_private = False
+        num_private_collections = 0
+
+        for collection in form.cleaned_data['collections']:
+            if not collection.public:
+                in_private = True
+                num_private_collections += 1
+            else:
+                in_public = True
+
+        if not description.strip():
+            form.add_error('description', "Item description cannot be empty.")
+            messages.error(self.request, "Error: Item description cannot be empty.")
+            return self.form_invalid(form)
+        elif in_public and in_private:
+            form.add_error('collections', "Item cannot be in both a private and public collection.")
+            messages.error(self.request, "Error: Item cannot be in both a private and public collection.")
+            return self.form_invalid(form)
+        elif num_private_collections > 1:
+            form.add_error('collections', "Item cannot be in more than one private collection.")
+            messages.error(self.request, "Error: Item cannot be in more than one private collection.")
+            return self.form_invalid(form)
+        elif image:
+            ext = str(image.name).split('.')[-1].lower()
+            if ext not in allowed_extensions:
+                form.add_error('image', "Invalid file format. Only JPG, JPEG, and PNG are allowed.")
+                messages.error(self.request, "Error: Invalid file format. Only JPG, JPEG, and PNG are allowed.")
+                return self.form_invalid(form)
+
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "There are errors in the form. Please fix them and try again.")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
         context['user_type'] = user_type
-
         return context
 
     def dispatch(self, request, *args, **kwargs):
-        curr_user = request.user
+        curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
 
         if not curr_user.is_authenticated:
-            return redirect(reverse("login_view"))
+            messages.error(request, "You must be logged in to edit an item.")
+            return redirect(reverse("login"))
         elif user_type != "Librarian":
+            messages.error(request, "You do not have permission to edit this item.")
             return redirect("patron")
 
         return super().dispatch(request, *args, **kwargs)
@@ -479,7 +633,9 @@ class ItemEditView(UpdateView):
 class ItemDeleteView(DeleteView):
     model = Item
     template_name = 'music/item_confirm_delete.html'
-    success_url = '/success/'  # Redirect after successful deletion
+
+    def get_success_url(self):
+        return reverse('collections')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -487,16 +643,143 @@ class ItemDeleteView(DeleteView):
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
         context['user_type'] = user_type
+        context['item'] = self.get_object()
 
         return context
 
     def dispatch(self, request, *args, **kwargs):
-        curr_user = request.user
+        curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
 
         if not curr_user.is_authenticated:
-            return redirect(reverse("login_view"))
+            return redirect(reverse("login"))
         elif user_type != "Librarian":
             return redirect("patron")
 
         return super().dispatch(request, *args, **kwargs)
+
+
+@login_required
+def create_collection_patron(request):
+    curr_user = request.user  # Get the logged-in user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    if user_type != "Patron":
+        return redirect("librarian")
+
+    if request.method == 'POST':
+        collection_form = CollectionForm(request.POST)
+
+        if collection_form.is_valid():
+            title = collection_form.cleaned_data['title']
+            # Check for duplicate titles
+            if Collection.objects.filter(title=title).exists():
+                messages.error(request, f"A Collection with the title '{title}' already exists.")
+                return redirect("create_collection_patron")
+
+            collection = collection_form.save(commit=False)
+            collection.creator = curr_patron
+            collection.public = True  # Forces the collection to be public
+
+            collection.save()
+
+            return redirect("collections")
+        else:
+            messages.error(request, "There was an error creating the collection. Please check the form and try again.")
+
+    else:
+        collection_form = CollectionForm()
+
+    context = {
+        'collection_form': collection_form,
+    }
+    return render(request, 'music/create_collection_patron.html', context)
+
+@login_required
+def manage_collections_patron(request):
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("librarian")
+
+    # Filter collections based on the creator
+    collections = Collection.objects.filter(creator=curr_patron)
+
+    context = {
+        "collections": collections,
+    }
+    return render(request, "music/manage_collections_patron.html", context)
+
+
+@login_required
+def edit_collection_patron(request, title, collection_id):
+    """
+    View for Patrons to edit collections they created.
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    collection_title = Collection.objects.get(id=collection_id).title
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("patron")
+
+    collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
+
+    collection_form = CollectionForm(instance=collection)
+
+    if request.method == 'POST':
+        collection_form = CollectionForm(request.POST, instance=collection)
+
+        if "submit_collection" in request.POST:
+            if collection_form.is_valid():
+                title = collection_form.cleaned_data['title']
+                if Collection.objects.filter(title=title).exists():  # Check for duplicate titles
+                    messages.error(request, f"A Collection with the title '{title}' already exists.")
+                else:
+                    collection.public = True  # Forces the collection to be public
+                    collection_form.save()
+                    return redirect('manage_collections_patron')
+            else:
+                messages.error(request, "There was an error updating the collection. Please check the form.")
+
+    context = {
+        'collection_form': collection_form,
+        'collection': collection,
+    }
+    return render(request, 'music/edit_collection_patron.html', context)
+
+
+@login_required
+def delete_collection_patron(request, title, collection_id):
+    """
+    View for Patrons to delete collections they created.
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+    curr_patron = Patron.objects.filter(user=curr_user).first()
+
+    collection_title = Collection.objects.get(id=collection_id).title
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("patron")
+
+    original_title = title.replace('-', ' ')
+    collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
+
+    if request.method == "POST":
+        collection.delete()
+        return redirect('manage_collections_patron')  # Redirect to Patron's collections page
+
+    return render(request, 'music/delete_collection_patron.html', {'collection': collection})
+
