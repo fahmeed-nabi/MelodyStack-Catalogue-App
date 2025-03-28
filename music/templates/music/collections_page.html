@@ -153,6 +153,12 @@
         {% endif %}
     </header>
 
+    <script>
+        {% for message in messages%}
+            alert('{{ message }}')
+        {% endfor %}
+    </script>
+
     <div class="container mt-5">
         <h1 class="text-center text-uppercase fw-light text-dark mb-4">
             {% if active_collection %}

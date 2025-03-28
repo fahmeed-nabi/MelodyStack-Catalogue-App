@@ -1,6 +1,7 @@
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.messages.storage import default_storage
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.views import generic
@@ -11,7 +12,7 @@ from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 User = get_user_model()
 
 from . import aws
-from .models import Item, Librarian, Patron, Collection
+from .models import Item, Librarian, Patron, Collection, BorrowRequest
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm, FilterForm
 from .utils import get_user_type, get_accessible_collections
 from mysite.settings import os.environ.get('BUCKET_NAME')
@@ -32,10 +33,32 @@ def login_page(request):
         return render(request, "music/login_page.html")
 
 
+def borrow_redir(request, pk):
+    item = Item.objects.filter(pk=pk).first()
+    owner = item.owner
+    print(owner.first_name)
+    requester = get_user(request)
+    print(requester.first_name)
+    print(owner.pk)
+
+    if(owner.email == requester.email):
+        messages.info(request, "ERROR: Cannot request your own item!")
+        return redirect("item_detail", pk)
+    if(BorrowRequest.objects.filter(item_owner=owner, requester=requester).exists()):
+        messages.info(request, "ERROR: You have already requested this item! Please wait to be approved.")
+        return redirect("item_detail", pk)
+    
+    borrow_request = BorrowRequest(requested_item=item, item_owner=owner, requester=requester)
+    borrow_request.save()
+    
+    messages.info(request, "Success! Your request has been sent.")
+    return redirect("collections")
+
 def redir(request):
     curr_user = get_user(request)
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
+    list(messages.get_messages(request))
 
     if librarians.exists():
         return redirect("librarian")

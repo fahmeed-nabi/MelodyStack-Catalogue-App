@@ -34,14 +34,13 @@ class Item(models.Model):
     image = models.ImageField(
         default=None, upload_to='item_images', blank=True, null=True
     )
-    collections = models.ManyToManyField('Collection', related_name='items', blank=True, null=True)
+    collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     average_rating = models.FloatField(default=0.0)
 
     owner = models.ForeignKey(User, related_name="owner", on_delete=models.CASCADE, blank=True)
 
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
-    requested_by = models.ManyToManyField('Patron', related_name='requested_by', blank=True)
     due_date = models.DateField(blank=True, null=True)
 
     def is_accessible_by(self, user):
@@ -204,3 +203,10 @@ class Librarian(models.Model):
 
         super().save(*args, **kwargs)
 
+class BorrowRequest(models.Model):
+    requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
+    item_owner = models.ForeignKey(User, related_name="item_owner", on_delete=models.CASCADE)
+    requester = models.ForeignKey(User, related_name="requester", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('item_owner', 'requester')
