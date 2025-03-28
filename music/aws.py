@@ -56,7 +56,18 @@ def download_file(filename, bucketname, dir):
     except:
         print(f"failed to download {filename} from {bucketname} to {dir}")
         return False
-    return True 
+    return True
+
+def delete_file(filename, bucketname):
+    client = boto3.client('s3', aws_access_key_id=os.getenv('AWS_ID'), aws_secret_access_key=os.getenv('AWS_KEY'))
+    try:
+        client.delete_object(Bucket=bucketname, Key=filename)
+
+        print(f"File '{filename}' deleted from bucket '{bucketname}'")
+    except:
+        print(f"failed to delete {filename} from {bucketname}")
+        return False
+    return True
 
 def delete_file(filename, bucketname):
     client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'))

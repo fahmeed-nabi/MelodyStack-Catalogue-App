@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create New Collection</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+        }
+        .btn-custom {
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+        .btn-custom:hover {
+            background-color: #1a252f;
+            color: white;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        footer {
+            margin-top: auto;
+            text-align: center;
+            background-color: #f1f1f1;
+            padding: 10px;
+        }
+        .char-count {
+            font-size: 0.9em;
+            color: #6c757d;
+            text-align: right;
+        }
+        .alert {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header d-flex justify-content-between align-items-center shadow-sm">
+        <a href="{% url 'collections' %}" class="btn btn-light btn-custom">Back to Collections</a>
+        <a href="{% url 'patron' %}" class="btn btn-light btn-custom">Go to Dashboard</a>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container mt-5">
+        <h2 class="mb-4">Create New Collection</h2>
+
+        <!-- Display Error or Success Messages -->
+        {% if messages %}
+        <div class="alert alert-danger" id="messages-alert">
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Collection Form -->
+        <form method="post" action="" id="collection-form">
+            {% csrf_token %}
+
+            <!-- Title Field -->
+            <div class="mb-3">
+                <label for="collection-title" class="form-label">Title:</label>
+                <input type="text" id="collection-title" name="title" class="form-control" maxlength="100" required>
+                <div class="char-count" id="collection-title-char-count">100 characters remaining</div>
+            </div>
+
+            <!-- Description Field -->
+            <div class="mb-3">
+                <label for="collection-description" class="form-label">Description:</label>
+                <textarea id="collection-description" name="description" class="form-control" rows="4" maxlength="500"></textarea>
+                <div class="char-count" id="collection-description-char-count">500 characters remaining</div>
+            </div>
+
+            <!-- Public Field (Hidden) -->
+            <input type="hidden" name="public" value="true">
+
+            <!-- Submit Button -->
+            <button type="submit" name="submit_collection" class="btn btn-success btn-custom mt-4">Create Collection</button>
+        </form>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
+    </footer>
+
+    <!-- JavaScript for Character Counting -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            initializeCharCount("collection-title", "collection-title-char-count", 100);
+            initializeCharCount("collection-description", "collection-description-char-count", 500);
+        });
+
+        function initializeCharCount(inputId, charCountId, maxLength) {
+            const inputElement = document.getElementById(inputId);
+            const charCountElement = document.getElementById(charCountId);
+
+            inputElement.addEventListener("input", function () {
+                const remainingChars = maxLength - inputElement.value.length;
+                charCountElement.textContent = `${remainingChars} characters remaining`;
+            });
+        }
+    </script>
+</body>
+</html>

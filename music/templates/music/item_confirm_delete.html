@@ -69,7 +69,7 @@
 <body>
 
 <header class="header d-flex justify-content-between align-items-center shadow-sm">
-    <a href="/music/patron/" class="header-title text-decoration-none text-white">Music Media Storefront</a>
+    <a href="/music/librarian/" class="header-title text-decoration-none text-white">Music Media Storefront</a>
     <a href="{% url 'logout_view' %}" class="btn btn-light btn-custom">Log Out</a>
 </header>
 
@@ -82,12 +82,13 @@
                 <p class="text-center text-secondary">Item: {{ item.title }}</p>
                 <p class="text-center text-secondary">This action cannot be undone.</p>
 
-                <!-- Form for Deleting Item, Redirecting after Success -->
-                <form method="post" action="{% url 'collections' %}">
+                <!-- Form for Deleting Item and Cancel button -->
+                <form method="post" action="{% url 'item_delete' item.pk %}">
                     {% csrf_token %}
                     <div class="btn-container">
                         <button type="submit" class="btn btn-danger btn-custom">Yes, Delete</button>
-                        <a href="javascript:history.back()" class="btn btn-secondary btn-custom">Cancel</a>
+                        <!-- Cancel button -->
+                        <a href="{% url 'item_detail' item.pk %}" class="btn btn-secondary btn-custom">Cancel</a>
                     </div>
                 </form>
             </div>

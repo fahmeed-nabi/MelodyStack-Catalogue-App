@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.utils.text import slugify
+from . import aws
+from mysite.settings import os.environ.get('BUCKET_NAME')
 
 User = get_user_model()
 
@@ -32,12 +35,32 @@ class Item(models.Model):
     image = models.ImageField(
         default=None, upload_to='item_images', blank=True, null=True
     )
-    collections = models.ManyToManyField('Collection', related_name='items', blank=True)
+    collections = models.ManyToManyField('Collection', related_name='items', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
     average_rating = models.FloatField(default=0.0)
-
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
+    requested_by = models.ManyToManyField('Patron', related_name='requested_by', blank=True)
+    due_date = models.DateField(blank=True, null=True)
+
+    def is_accessible_by(self, user):
+        """
+        Check if a user can access this item.
+        An item is accessible if:
+        - It belongs to at least one public collection.
+        - It belongs to a private collection that the user has access to.
+        """
+        if self.collections.filter(public=True).exists() or self.collections is None:
+            return True
+        try:
+            patron = Patron.objects.get(user=user)
+            return self.collections.filter(private_users=patron).exists()
+        except Patron.DoesNotExist:
+            return False
+
+    def delete(self, *args, **kwargs):
+        if self.image:
+            aws.delete_file(self.image.name, os.environ.get('BUCKET_NAME'))
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.title
@@ -50,18 +73,38 @@ class Patron(models.Model):
     google_account = models.CharField(max_length=200)
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     date_joined = models.DateTimeField('date_joined')
+
     saved_items = models.ManyToManyField(Item, related_name='saved_items', blank=True)
+    borrowed_items = models.ManyToManyField(Item, related_name='borrowed_items', blank=True)
+    ratings_by = models.ManyToManyField('Rating', related_name='ratings_by', blank=True)
+    comments_by = models.ManyToManyField('Comment', related_name='comments_by', blank=True)
 
     # Optional info
     bio = models.CharField(max_length=250, blank=True)
     birthday = models.DateField(blank=True, null=True)
-    
 
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        if self.profile_picture:
+            aws.delete_file(self.profile_picture.name, os.environ.get('BUCKET_NAME'))
+        super().delete(*args, **kwargs)
+
     def get_user_type(self):
         return 'Patron'
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = Patron.objects.get(pk=self.pk)
+                # If a new profile picture is being uploaded, delete the old one
+                if old_instance.profile_picture and old_instance.profile_picture != self.profile_picture:
+                    aws.delete_file(old_instance.profile_picture.name, os.environ.get('BUCKET_NAME'))
+            except Patron.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
 
 
 class Collection(models.Model):
@@ -71,8 +114,12 @@ class Collection(models.Model):
     private_users = models.ManyToManyField(
         Patron, related_name='accessible_collections', blank=True,  
     )  # Patrons allowed to view private collections
+    pending_users = models.ManyToManyField(
+        Patron, related_name='pending_collections', blank=True,
+    ) # Patrons who requested access to a private collection
 
-    image = models.ImageField(default=None, upload_to='collection_images', blank=True, null=True)
+    # Only assign to Patron since Librarian can access/edit any Collection
+    creator = models.ForeignKey('Patron', on_delete=models.CASCADE, related_name='creator', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -115,6 +162,7 @@ class Comment(models.Model):
     patron = models.ForeignKey(Patron, related_name='comments', on_delete=models.CASCADE)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    thumbs_up = models.IntegerField(default=0)
 
     def __str__(self):
         return f"Comment by {self.patron.name} on {self.item.title}"
@@ -135,9 +183,23 @@ class Librarian(models.Model):
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        if self.profile_picture:
+            aws.delete_file(self.profile_picture.name, os.environ.get('BUCKET_NAME'))
+        super().delete(*args, **kwargs)
+
     def get_user_type(self):
         return 'Librarian'
 
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = Librarian.objects.get(pk=self.pk)
+                # If a new profile picture is being uploaded, delete the old one
+                if old_instance.profile_picture and old_instance.profile_picture != self.profile_picture:
+                    aws.delete_file(old_instance.profile_picture.name, os.environ.get('BUCKET_NAME'))
+            except Librarian.DoesNotExist:
+                pass
 
-
+        super().save(*args, **kwargs)
 

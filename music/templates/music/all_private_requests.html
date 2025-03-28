@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Private Collections Requests</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        /* Sticky Footer Styling */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .container {
+            flex: 1;
+        }
+        footer {
+            background-color: #f8f9fa;
+            padding: 1rem 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-5">
+        <!-- Top Buttons -->
+        <div class="d-flex justify-content-between mb-4">
+            <!-- Back to Manage Collections Button -->
+            <a href="{% url 'manage_collections' %}" class="btn btn-secondary">Back to Manage Collections</a>
+
+            <!-- Back to Dashboard Button -->
+            <a href="{% url 'librarian' %}" class="btn btn-primary">Back to Dashboard</a>
+        </div>
+
+        <!-- Page Heading -->
+        <h1 class="text-center text-uppercase fw-light text-dark mb-4">All Private Collections Requests</h1>
+
+        {% if private_collections_with_requests %}
+            <!-- List of Private Collections with Pending Requests -->
+            <ul class="list-group">
+                {% for collection in private_collections_with_requests %}
+                    <li class="list-group-item">
+                        <!-- Collection Title -->
+                        <strong>{{ collection.title }}</strong>
+                        <span class="text-muted">(Pending Requests: {{ collection.pending_users.count }})</span>
+
+                        <!-- View Requests Button -->
+                        <div class="mt-2">
+                            <a href="{% url 'view_requests' collection.id %}" class="btn btn-warning btn-sm">View Requests</a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <!-- No Pending Requests Message -->
+            <p class="text-center text-muted fs-5 mt-4">No private collections with pending requests.</p>
+        {% endif %}
+    </div>
+
+    <!-- Sticky Footer -->
+    <footer class="bg-light py-3 text-center">
+        <div class="container">
+            <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
