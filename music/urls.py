@@ -11,9 +11,8 @@ auth_urls = [
 # Collection-related URLs
 collection_urls = [
     path("collections/", views.CollectionsFrontView.as_view(), name='collections'),
-    path("collection/<int:collection_id>/unauthorized/", views.unauthorized_collection_view,
+    path("collections/<int:collection_id>/unauthorized/", views.unauthorized_collection_view,
          name="unauthorized_collection"),
-
 ]
 
 # Item-related URLS
@@ -36,7 +35,6 @@ librarian_urls = [
     path('librarian/manage_collections/view_requests/<int:collection_id>/', views.view_private_collection_requests,
          name='view_requests'),
     path('librarian/manage_collections/all_private_requests/', views.all_private_requests, name='all_private_requests'),
-
 ]
 
 # Patron-related URLS
