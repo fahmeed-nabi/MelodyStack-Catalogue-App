@@ -204,9 +204,16 @@ class Librarian(models.Model):
         super().save(*args, **kwargs)
 
 class BorrowRequest(models.Model):
+    STATUS_CHOICES = [
+        ('APPROVED', 'Approved'),
+        ('PENDING', 'Pending'),
+        ('DENIED', 'Denied')
+    ]
     requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
     item_owner = models.ForeignKey(User, related_name="item_owner", on_delete=models.CASCADE)
     requester = models.ForeignKey(User, related_name="requester", on_delete=models.CASCADE)
-
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='PENDING'
+    )
     class Meta:
-        unique_together = ('item_owner', 'requester')
+        unique_together = ('item_owner', 'requester', 'requested_item')
