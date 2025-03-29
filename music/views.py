@@ -200,30 +200,48 @@ class ItemDetailView(DetailView):
     context_object_name = "item"
 
     def get_object(self):
-        """
-        Fetches the item based on its primary key (id).
-        """
+        """Fetches the item based on its primary key (id)."""
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
     def get_context_data(self, **kwargs):
-        """
-        Add item data
-        """
-        curr_user = get_user(self.request)
+        """Add item data."""
+        curr_user = self.request.user
         user_type = get_user_type(curr_user)
 
         context = super().get_context_data(**kwargs)
         item = self.get_object()
+        borrow_request = BorrowRequest.objects.filter(requested_item=item).first()
+
+        already_requested = False
+        if borrow_request:
+            already_requested = curr_user in borrow_request.requesters.all()
 
         if item.image:
             file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
-            context['file_url'] = file_url
         else:
-            context['file_url'] = None
+            file_url = None
 
-        context['user_type'] = user_type
+        context.update({
+            'file_url': file_url,
+            'user_type': user_type,
+            'status': item.status,
+            'already_requested': already_requested,
+        })
 
         return context
+
+    @login_required
+    def post(self, request, *args, **kwargs):
+        """Handles borrowing requests."""
+        item = self.get_object()
+        borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=item.owner)
+
+        if request.user in borrow_request.requesters.all():
+            messages.warning(request, "You have already requested this item.")
+        else:
+            borrow_request.requesters.add(request.user)
+
+        return redirect("item_detail", pk=item.pk)
 
 @login_required
 def librarian_page(request):
@@ -790,81 +808,107 @@ def delete_collection_patron(request, title, collection_id):
 
 @login_required
 def borrow_redir(request, pk):
-    item = Item.objects.filter(pk=pk).first()
+    """
+    Handles borrowing requests by adding the user to the requesters list.
+    """
+    item = get_object_or_404(Item, pk=pk)
     owner = item.owner
-    print(owner.first_name)
-    requester = get_user(request)
-    print(requester.first_name)
-    print(owner.pk)
+    requester = request.user  # Use Django's built-in user system
 
-    if(owner.email == requester.email):
+    if owner == requester:
         messages.error(request, "ERROR: Cannot request your own item!")
-        return redirect("item_detail", pk)
-    if(BorrowRequest.objects.filter(item_owner=owner, requester=requester, requested_item=item).exists()):
-        messages.error(request, "ERROR: You have already requested this item! Please wait to be approved.")
-        return redirect("item_detail", pk)
-    
-    borrow_request = BorrowRequest(requested_item=item, item_owner=owner, requester=requester)
-    borrow_request.save()
-    
-    messages.success(request, "Success! Your request has been sent.")
-    return redirect("item_detail", pk)
+        return redirect("item_detail", pk=pk)
 
+    # Get or create a borrow request for this item
+    borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=owner)
+
+    if requester in borrow_request.requesters.all():
+        messages.error(request, "ERROR: You have already requested this item! Please wait to be approved.")
+        return redirect("item_detail", pk=pk)
+
+    # Add the user to requesters list
+    borrow_request.requesters.add(requester)
+    messages.success(request, "Success! Your request has been sent.")
+    return redirect("item_detail", pk=pk)
+
+
+@login_required
 def incoming_requests(request):
-    curr_user = get_user(request)
+    """
+    Shows incoming borrow requests for the logged-in user (only librarians).
+    """
+    curr_user = request.user
     user_type = get_user_type(curr_user)
 
-    if not request.user.is_authenticated:
-        return redirect(reverse("login"))
-    elif user_type != "Librarian":
+    if user_type != "Librarian":
         return redirect("patron")
 
+    # Fetch all borrow requests where the user is the owner
     incoming_list = BorrowRequest.objects.filter(item_owner=curr_user)
-    print(incoming_list)
 
     return render(request, "music/incoming_borrow_requests.html", {
-        "incoming_list": incoming_list, 
-        })
+        "incoming_list": incoming_list,
+    })
 
-def approve_request(request, borrow_request_id):
-    curr_user = get_user(request)
+
+@login_required
+def approve_request(request, borrow_request_id, user_id):
+    """
+    Approves a borrow request for a specific user.
+    """
+    curr_user = request.user
     user_type = get_user_type(curr_user)
 
-    if not request.user.is_authenticated:
-        return redirect(reverse("login"))
-    elif user_type != "Librarian":
+    if user_type != "Librarian":
         return redirect("patron")
-    
-    borrow_request = BorrowRequest.objects.filter(pk=borrow_request_id).first()
-    borrow_request.status = "APPROVED"
-    borrow_request.save()
+
+    borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
+    user_to_approve = get_object_or_404(User, pk=user_id)
+
+    if user_to_approve in borrow_request.requesters.all():
+        borrow_request.requesters.remove(user_to_approve)
+        borrow_request.status = "APPROVED"
+        borrow_request.save()
+        messages.success(request, f"Borrow request for {user_to_approve.first_name} has been approved.")
 
     return redirect("incoming_requests")
-    
-def deny_request(request, borrow_request_id):
-    curr_user = get_user(request)
+
+
+@login_required
+def deny_request(request, borrow_request_id, user_id):
+    """
+    Denies a borrow request for a specific user.
+    """
+    curr_user = request.user
     user_type = get_user_type(curr_user)
 
-    if not request.user.is_authenticated:
-        return redirect(reverse("login"))
-    elif user_type != "Librarian":
-        return redirect("patron")   
+    if user_type != "Librarian":
+        return redirect("patron")
 
-    borrow_request = BorrowRequest.objects.filter(pk=borrow_request_id).first()
-    borrow_request.status = "DENIED"
-    borrow_request.save()
+    borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
+    user_to_deny = get_object_or_404(User, pk=user_id)
 
-    return redirect("incoming_requests")   
+    if user_to_deny in borrow_request.requesters.all():
+        borrow_request.requesters.remove(user_to_deny)
+        borrow_request.status = "DENIED"
+        borrow_request.save()
+        messages.warning(request, f"Borrow request for {user_to_deny.first_name} has been denied.")
 
+    return redirect("incoming_requests")
+
+
+@login_required
 def outgoing_requests(request):
-    curr_user = get_user(request)
+    """
+    Shows borrow requests made by the logged-in user.
+    """
+    curr_user = request.user
     user_type = get_user_type(curr_user)
 
-    if not request.user.is_authenticated:
-        return redirect(reverse("login"))
+    # Find borrow requests where the user is in the requesters list
+    outgoing_list = BorrowRequest.objects.filter(requesters=curr_user)
 
-    outgoing_list = BorrowRequest.objects.filter(requester=curr_user)
     return render(request, "music/outgoing_borrow_requests.html", {
-        "outgoing_list": outgoing_list, 
+        "outgoing_list": outgoing_list,
         "user_type": user_type,
-        })
+    })

@@ -211,9 +211,9 @@ class BorrowRequest(models.Model):
     ]
     requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
     item_owner = models.ForeignKey(User, related_name="item_owner", on_delete=models.CASCADE)
-    requester = models.ForeignKey(User, related_name="requester", on_delete=models.CASCADE)
+    requesters = models.ManyToManyField(User, related_name="requesters", blank=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='PENDING'
     )
-    class Meta:
-        unique_together = ('item_owner', 'requester', 'requested_item')
+    # class Meta:
+    #     unique_together = ('item_owner', 'requested_item')
