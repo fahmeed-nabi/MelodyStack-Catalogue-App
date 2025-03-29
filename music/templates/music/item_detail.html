@@ -53,9 +53,9 @@
             bottom: 20px;  /* Adjust position from the top */
             right: 20px; /* Adjust position from the right */
         }
-        .error {
-            color: red;
-        }
+
+        {% comment %} .alert-success { background-color: green; }
+        .alert-error { background-color: red; } {% endcomment %}
 
         /* Sticky Footer */
         footer {
@@ -105,11 +105,15 @@
                     {% endif %}
                 </div>
 
-                <p class="text-secondary">{{ item.description }}</p>
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %} alert-danger {% elif message.tags == 'success' %} alert-success {% endif %} alert-dismissible fade show" role="alert">
+                        {{ message }} 
+                    </div>
+                    {% endfor %}
+                {% endif %}
 
-                {% for message in messages %}
-                    <p class="error"><strong>{{ message }}</strong></p>
-                {% endfor %}
+                <p class="text-secondary">{{ item.description }}</p>
                 <p><strong>Owner:</strong> {{ item.owner.first_name }}</p>
                 <p><strong>Status:</strong> {{ item.get_status_display }}</p>
                 <p><strong>Location:</strong> {{ item.location }}</p>
@@ -130,9 +134,11 @@
                     </div>
                 {% endif %}
 
+                {% if user_type == 'Librarian' or user_type == 'Patron'%}
                 <div class="request-btn">
                     <a href="{% url 'borrow_redirect' item.pk %}" class="btn btn-success btn-custom mt-3">Borrow Item</a>
                 </div>
+                {% endif %}
 
                 <a href="{% url 'collections' %}" class="btn btn-primary btn-custom mt-3">Back to Collection</a>
             </div>
