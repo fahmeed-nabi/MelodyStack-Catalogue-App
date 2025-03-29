@@ -421,6 +421,8 @@ def create_collection_item(request):
                     new_item = item_form.save(commit=False)
                     new_item.owner = curr_user
                     new_item.save()
+                    new_item.collections.set(item_form.cleaned_data['collections'])
+                    new_item.save()
                     return redirect('collections')
             else:
                 messages.error(request, "Failed to create the item. Please upload an image in .jpg, .jpeg, or .png format.")
