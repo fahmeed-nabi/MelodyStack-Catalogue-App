@@ -385,7 +385,6 @@ def create_collection_item(request):
                 in_private = False
                 num_private_collections = 0
                 for collection in item_form.cleaned_data['collections']:
-                    print(collection)
                     if not collection.public:
                         in_private = True
                         num_private_collections += 1
