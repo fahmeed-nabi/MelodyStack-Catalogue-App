@@ -26,13 +26,13 @@
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             position: relative;
-            flex-grow: 1; /* Ensure content takes up available space */
+            flex-grow: 1;
         }
         .item-image {
-            width: 200px;  /* Slightly larger width */
-            height: 200px; /* Slightly larger height */
-            object-fit: cover; /* Ensure the image fits nicely within the square */
-            border-radius: 10px; /* Optional: rounded corners */
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
         }
         .btn-custom {
             border-radius: 20px;
@@ -45,18 +45,16 @@
         }
         .dropdown-btn {
             position: absolute;
-            top: 15px;  /* Adjust position from the top */
-            right: 15px; /* Adjust position from the right */
+            top: 15px;
+            right: 15px;
         }
-
-        /* Sticky Footer */
         footer {
             background-color: #f8f9fa;
             padding: 1rem;
             position: sticky;
             bottom: 0;
             width: 100%;
-            margin-top: auto; /* Ensure the footer stays at the bottom */
+            margin-top: auto;
         }
     </style>
 </head>
@@ -64,14 +62,11 @@
 
 <header class="header d-flex justify-content-between align-items-center shadow-sm py-3 px-4">
     <h2 class="m-0 fw-bold text-white d-flex align-items-center">
-        <!-- Redirect based on user_type -->
         <a href="{% if user_type == 'Librarian' %}/music/librarian/
                  {% elif user_type == 'Patron' %}/music/patron/
                  {% else %}/music/login/
                  {% endif %}" class="header-title fs-2 text-decoration-none text-white">Music Media Storefront</a>
     </h2>
-
-    <!-- Log Out or Login button -->
     {% if user_type == "Librarian" or user_type == "Patron" %}
         <a href="{% url 'logout_view' %}" class="btn btn-light btn-custom">Log Out</a>
     {% else %}
@@ -88,24 +83,29 @@
 
                 <div class="text-center">
                     {% if file_url %}
-                        <!-- Show the item image from S3 -->
                         <img src="{{ file_url }}" class="item-image mb-3" alt="{{ item.title }}">
                     {% else %}
-                        <!-- Show fallback image -->
                         <img src="https://cdn4.iconfinder.com/data/icons/public-sign-part03/100/_-14-512.png"
                              class="item-image mb-3" alt="No image available">
                     {% endif %}
                 </div>
 
-                <p class="text-secondary">{{ item.description }}</p>
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %} alert-danger {% elif message.tags == 'success' %} alert-success {% endif %} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
 
+                <p class="text-secondary">{{ item.description }}</p>
+                <p><strong>Owner:</strong> {{ item.owner.first_name }}</p>
                 <p><strong>Status:</strong> {{ item.get_status_display }}</p>
                 <p><strong>Location:</strong> {{ item.location }}</p>
                 <p><strong>Average Rating:</strong> {{ item.average_rating }}/5</p>
                 <p><strong>Posted on:</strong> {{ item.created_at|date:"F j, Y" }}</p>
 
                 {% if user_type == 'Librarian' %}
-                    <!-- Dropdown for Librarian options -->
                     <div class="dropdown-btn">
                         <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton"
                                 data-bs-toggle="dropdown" aria-expanded="false">
@@ -118,13 +118,29 @@
                     </div>
                 {% endif %}
 
-                <a href="{% url 'collections' %}" class="btn btn-primary btn-custom mt-3">Back to Collection</a>
+                <!-- Updated Button Layout -->
+                <div class="d-flex justify-content-between mt-3">
+                    <a href="{% url 'collections' %}" class="btn btn-primary btn-custom">Back to Collection</a>
+
+                    {% if user_type == 'Librarian' or user_type == 'Patron' %}
+                        <form method="POST" action="{% url 'borrow_redirect' item.pk %}">
+                            {% csrf_token %}
+                            {% if item.status != "CHECKED_IN" %}
+                                <button class="btn btn-secondary btn-custom request-btn" disabled>UNAVAILABLE</button>
+                            {% elif already_requested %}
+                                <button class="btn btn-warning btn-custom request-btn" disabled>PENDING REQUEST</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-success btn-custom request-btn">Borrow Item</button>
+                            {% endif %}
+                        </form>
+                    {% endif %}
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
-<!-- Footer -->
 <footer class="bg-light py-3">
     <p class="mb-0 text-center">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
 </footer>

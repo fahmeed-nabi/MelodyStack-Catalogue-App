@@ -6,6 +6,7 @@ auth_urls = [
     path("login/", views.login_page, name='login'),
     path('redir', views.redir, name="redir"),
     path("logout", views.logout_view, name="logout_view"),
+    path('borrow_redir/<int:pk>/', views.borrow_redir, name='borrow_redirect'),
 ]
 
 # Collection-related URLs
@@ -26,6 +27,7 @@ item_urls = [
 librarian_urls = [
     path('librarian/', views.librarian_page, name='librarian'),
     path('librarian/settings/', views.librarian_settings_view, name='librarian_settings'),
+    path('librarian/incoming_requests', views.incoming_requests, name='incoming_requests'),
     path('librarian/create_collection_item/', views.create_collection_item, name='create_collection_item'),
     path('librarian/manage_collections/', views.manage_collections, name='manage_collections'),
     path('librarian/manage_collections/edit_collection/<slug:title>/<int:collection_id>/', views.edit_collection,
@@ -35,9 +37,13 @@ librarian_urls = [
     path('librarian/manage_collections/view_requests/<int:collection_id>/', views.view_private_collection_requests,
          name='view_requests'),
     path('librarian/manage_collections/all_private_requests/', views.all_private_requests, name='all_private_requests'),
+    path('librarian/incoming_requests/approve_request/<int:borrow_request_id>', views.approve_request,
+         name="approve_request"),
+    path('librarian/incoming_requests/deny_request/<int:borrow_request_id>', views.deny_request, name="deny_request"),
+    path('librarian/outgoing_requests', views.outgoing_requests, name="outgoing_requests"),
 ]
 
-# Patron-related URLS
+# Patron-related URLs
 patron_urls = [
     path('patron/', views.patron_page, name='patron'),
     path('patron/settings/', views.patron_settings_view, name='patron_settings'),
@@ -47,6 +53,7 @@ patron_urls = [
          name='edit_collection_patron'),
     path('patron/manage_collections/delete_collection/<slug:title>/<int:collection_id>/',
          views.delete_collection_patron, name='delete_collection_patron'),
+    path('patron/outgoing_requests', views.outgoing_requests, name='outgoing_requests'),
 ]
 
 urlpatterns = auth_urls + item_urls + collection_urls + item_urls + librarian_urls + patron_urls
