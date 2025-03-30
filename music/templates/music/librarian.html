@@ -25,7 +25,7 @@
       <div class="card shadow-lg p-4 text-center">
         <div class="card-body">
           <!-- Profile Picture -->
-          <img src="{% if librarian_profile_picture %}{{ librarian_profile_picture_url }}{% else %}{{ MEDIA_URL }}https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg{% endif %}" class="rounded-circle mb-3" alt="{{ patron_first_name }}'s Profile Picture" width="120" height="120">
+          <img src="{% if librarian_profile_picture %}{{ librarian_profile_picture_url }}{% else %}https://as2.ftcdn.net/v2/jpg/00/64/67/63/1000_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg{% endif %}" class="rounded-circle mb-3" alt="{{ librarian_first_name }}'s Profile Picture" width="120" height="120">
 
           <h1 class="display-4">Welcome, {{ librarian_first_name }}!</h1>
           <h3 class="text-primary">You are a Librarian</h3>
@@ -47,6 +47,10 @@
             <a href="{% url 'librarian_settings' %}" class="btn btn-outline-secondary">⚙️ Settings</a>
             <!-- Add Collection or Item Button -->
             <a href="{% url 'create_collection_item' %}" class="btn btn-success">➕ Add Collection or Item</a>
+            <!-- New Manage Collections Button -->
+            <a href="{% url 'manage_collections' %}" class="btn btn-primary">📋 Manage Collections</a>
+            <a href="{% url 'incoming_requests' %}" class="btn btn-info active text-white">🔔 Incoming Requests</a>
+            <a href="{% url 'outgoing_requests' %}" class="btn btn-dark">➡️ Outgoing Requests</a>
             <a href="{% url 'logout_view' %}" class="btn btn-danger">🚪 Logout</a>
           </div>
         </div>

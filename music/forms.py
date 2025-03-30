@@ -29,3 +29,31 @@ class ItemForm(forms.ModelForm):
         model = Item
         fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
 
+    def clean_collections(self):
+        collections = self.cleaned_data.get('collections')
+        return collections
+
+class FilterForm(forms.Form):
+    title = forms.CharField(label="Title", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    media_type = forms.ChoiceField(
+        label="Media Type",
+        required=False,
+        choices=[
+            ("CD", "CD"),
+            ("VINYL", "Vinyl"),
+            ("BLU_RAY", "Blu-ray"),
+            ("CASSETTE", "Cassette"),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    description = forms.CharField(label="Description", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    availability = forms.ChoiceField(
+        label="Availability",
+        required=False,
+        choices=[
+            ("CHECKED_IN", "Checked In"),
+            ("IN_CIRCULATION", "In Circulation"),
+            ("BEING_REPAIRED", "Being Repaired"),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )

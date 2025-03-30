@@ -52,6 +52,30 @@
         .select2-container {
             width: 100% !important;
         }
+
+        .scroll-container {
+            max-height: 200px; /* Limit height for scrolling */
+            overflow-y: auto; /* Enable vertical scroll when content overflows */
+            border: 1px solid #ddd; /* Add border to separate visually */
+            padding: 10px; /* Add padding for better spacing */
+            border-radius: 5px; /* Round the edges */
+            background-color: #f8f9fa; /* Subtle background color for readability */
+        }
+
+        .search-bar {
+            width: 100%;
+            margin-bottom: 10px;
+            border-radius: 30px;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+        }
+
+        .search-bar:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.25);
+        }
     </style>
 </head>
 <body>
@@ -84,7 +108,7 @@
         <div class="tab-content" id="myTabContent">
             <!-- Collection Form -->
             <div class="tab-pane fade show active" id="collection" role="tabpanel" aria-labelledby="collection-tab">
-                <form method="post">
+                <form method="post" id="collection-form">
                     {% csrf_token %}
                     <h4>Create Collection</h4>
                     <div class="mb-3">
@@ -102,12 +126,21 @@
                         <input type="checkbox" id="collection-public" name="public">
                     </div>
                     <div class="mb-3">
-                        <label for="collection-private-users">Private Users:</label>
-                        <select id="collection-private-users" name="private_users" class="form-control select2" multiple>
+                        <label for="privateUserSearch" class="form-label">Private Users:</label>
+                        <!-- Search Bar for Filtering Private Users -->
+                        <input type="text" id="privateUserSearch" class="form-control search-bar" placeholder="Search users...">
+
+                        <!-- Scrollable Private Users Selection -->
+                        <div id="privateUsersList" class="scroll-container">
                             {% for patron in all_patrons %}
-                                <option value="{{ patron.id }}">{{ patron.name }}</option>
+                                <div class="form-check">
+                                    <!-- Check if the patron is already part of the collection's private_users -->
+                                    <input class="form-check-input private-user-checkbox" type="checkbox" id="patron-{{ patron.id }}" name="private_users"
+                                           value="{{ patron.id }}" {% if patron in collection.private_users.all %}checked{% endif %}>
+                                    <label class="form-check-label" for="patron-{{ patron.id }}">{{ patron.name }}</label>
+                                </div>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
                     <button type="submit" name="submit_collection" class="btn btn-primary btn-custom mt-4">Create Collection</button>
                 </form>
@@ -153,12 +186,22 @@
                         <input type="file" id="item-image" name="image" class="form-control" accept=".png, .jpg, .jpeg">
                     </div>
                     <div class="mb-3">
-                        <label for="item-collections">Collections:</label>
-                        <select id="item-collections" name="collections" class="form-control select2" multiple>
+                        <label for="collectionSearch" class="form-label">Collections:</label>
+                        <!-- Search Bar for Filtering Collections -->
+                        <input type="text" id="collectionSearch" class="form-control search-bar" placeholder="Search collections...">
+
+                        <!-- Scrollable Collections Selection -->
+                        <div id="itemCollectionsList" class="scroll-container">
                             {% for collection in all_collections %}
-                                <option value="{{ collection.id }}">{{ collection.title }}</option>
+                                <div class="form-check">
+                                    <input class="form-check-input collection-checkbox" type="checkbox" id="collection-{{ collection.id }}" name="collections"
+                                           value="{{ collection.id }}" {% if collection.id in item.collections.all %}checked{% endif %}>
+                                    <label class="form-check-label" for="collection-{{ collection.id }}">
+                                        {{ collection.title }} {% if collection.public %}(public){% else %}(private){% endif %}
+                                    </label>
+                                </div>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="item-tags">Tags:</label>
@@ -179,22 +222,43 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/js/select2.min.js"></script>
     <script>
-        $('.select2').select2();
+        document.addEventListener("DOMContentLoaded", function () {
+            // Search and Filter Private Users
+            const privateUserSearch = document.getElementById('privateUserSearch');
+            const privateUsersList = document.getElementById('privateUsersList');
+            const privateUserCheckboxes = privateUsersList.getElementsByClassName('form-check');
 
-        // Character count for title and description fields
-        function updateCharCount(inputId, counterId, maxLength) {
-            const input = document.getElementById(inputId);
-            const counter = document.getElementById(counterId);
-            input.addEventListener("input", () => {
-                const remaining = maxLength - input.value.length;
-                counter.textContent = `${remaining} characters remaining`;
+            privateUserSearch.addEventListener('input', function () {
+                const searchTerm = privateUserSearch.value.toLowerCase();
+
+                Array.from(privateUserCheckboxes).forEach(function (user) {
+                    const label = user.querySelector('.form-check-label');
+                    if (label.textContent.toLowerCase().includes(searchTerm)) {
+                        user.style.display = 'block'; // Show matching user
+                    } else {
+                        user.style.display = 'none'; // Hide non-matching user
+                    }
+                });
             });
-        }
 
-        updateCharCount("collection-title", "collection-title-char-count", 100);
-        updateCharCount("collection-description", "collection-description-char-count", 500);
-        updateCharCount("item-title", "item-title-char-count", 100);
-        updateCharCount("item-description", "item-description-char-count", 500);
+            // Search and Filter Collections
+            const collectionSearch = document.getElementById('collectionSearch');
+            const itemCollectionsList = document.getElementById('itemCollectionsList');
+            const collectionCheckboxes = itemCollectionsList.getElementsByClassName('form-check');
+
+            collectionSearch.addEventListener('input', function () {
+                const searchTerm = collectionSearch.value.toLowerCase();
+
+                Array.from(collectionCheckboxes).forEach(function (collection) {
+                    const label = collection.querySelector('.form-check-label');
+                    if (label.textContent.toLowerCase().includes(searchTerm)) {
+                        collection.style.display = 'block'; // Show matching collection
+                    } else {
+                        collection.style.display = 'none'; // Hide non-matching collection
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html>

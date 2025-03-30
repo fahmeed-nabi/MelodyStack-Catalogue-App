@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -56,6 +55,7 @@
             color: white;
         }
         .card {
+            position: relative;
             border-radius: 15px;
             overflow: hidden;
             transition: transform 0.3s ease-in-out;
@@ -67,28 +67,92 @@
         .card-footer {
             background-color: #ffffff;
         }
-        .header-title {
-            text-decoration: none;
-            color: white;
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid #fff;
         }
-        .header-title:hover {
-            text-decoration: underline;
+        .status-checked-in {
+            background-color: green;
+        }
+        .status-in-circulation {
+            background-color: red;
+        }
+        .status-being-repaired {
+            background-color: gray;
+        }
+        .legend {
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        .legend-circle {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .legend-checked-in {
+            background-color: green;
+        }
+        .legend-in-circulation {
+            background-color: red;
+        }
+        .legend-being-repaired {
+            background-color: gray;
+        }
+        #collectionList {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* New CSS for header-title */
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            color: white;  /* Keep the link text white */
+            text-decoration: none;  /* Remove the underline */
+        }
+
+        .header-title:hover,
+        .header-title:focus,
+        .header-title:active {
+            color: white;  /* Ensure the link stays white on hover, focus, or click */
+            transform: scale(1.1);  /* Apply scaling on hover */
+            outline: none;  /* Remove focus outline */
         }
     </style>
 </head>
 <body>
     {% load socialaccount %}
-    <header class="header d-flex justify-content-between align-items-center shadow-sm">
-        <h2 class="m-0 fw-normal">
-            <a href="/music/login/" class="header-title">Music Media Storefront</a>
+     <header class="header d-flex justify-content-between align-items-center shadow-sm py-3 px-4">
+        <h2 class="m-0 fw-bold text-white d-flex align-items-center">
+            <!-- Redirect based on user_type -->
+            <a href="{% if user_type == 'Librarian' %}/music/librarian/
+                     {% elif user_type == 'Patron' %}/music/patron/
+                     {% else %}/music/login/
+                     {% endif %}" class="header-title fs-2 text-decoration-none">Music Media Storefront</a>
         </h2>
 
+        <!-- Log Out or Login button -->
         {% if user_type == "Librarian" or user_type == "Patron" %}
             <a href="{% url 'logout_view' %}" class="btn btn-light btn-custom">Log Out</a>
         {% else %}
             <a href="{% provider_login_url 'google' %}?next=/music/redir" class="btn btn-light btn-custom">Login with Google</a>
         {% endif %}
     </header>
+
 
     <div class="container mt-5">
         <h1 class="text-center text-uppercase fw-light text-dark mb-4">
@@ -99,33 +163,140 @@
             {% endif %}
         </h1>
 
+        {% if active_collection %}
+            <p class="text-center text-secondary mb-4">{{ active_collection.description }}</p>
+        {% endif %}
+
         <div class="row">
+            <!-- Sidebar Section -->
             <div class="col-md-3">
                 <div class="sidebar">
                     <h5 class="fw-bold">Filter by Collection</h5>
-                    <a href="{% url 'collections' %}" class="{% if not active_collection %}active{% endif %}">All Collections</a>
-                    {% for collection in collections %}
-                        <a href="?collection={{ collection.id }}" class="{% if active_collection and active_collection.id == collection.id %}active{% endif %}">
-                            {{ collection.title }}
+                    <input type="text" id="collectionSearch" class="form-control mb-3" placeholder="Search Collections...">
+
+                    <div id="collectionList">
+                        <!-- "All Collections" Button -->
+                        <a href="{% url 'collections' %}" class="collection-item {% if not active_collection %}active{% endif %}">
+                            All Collections
                         </a>
-                    {% endfor %}
+
+                        <!-- Individual Collections -->
+                        {% for collection in collections %}
+                            {% if collection.accessible %}
+                                <!-- Route to collection items if accessible -->
+                                <a href="?collection={{ collection.id }}"
+                                   class="collection-item {% if active_collection and active_collection.id == collection.id %}active{% endif %}">
+                                    {{ collection.title }}
+                                </a>
+                            {% elif user_type == 'Anonymous' %}
+                                <!-- Redirect Anonymous user to login if accessing private -->
+                                <a href="{% url 'login' %}"
+                                   class="collection-item text-danger">
+                                    {{ collection.title }}
+                                </a>
+                            {% else %}
+                                <!-- Route Patron and Librarian to unauthorized page -->
+                                <a href="{% url 'unauthorized_collection' collection.id %}"
+                                   class="collection-item text-danger">
+                                    {{ collection.title }} <!--(Private)-->
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+
+
+
+
+                    <h5 class="fw-bold mt-4">Filter by Item Attributes</h5>
+                    <form method="GET">
+                        <!-- Preserve the selected collection -->
+                        {% if active_collection %}
+                            <input type="hidden" name="collection" value="{{ active_collection.id }}">
+                        {% endif %}
+
+                        <!-- Filter by Title -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" id="title" name="title" class="form-control" value="{{ request.GET.title }}">
+                        </div>
+
+                        <!-- Filter by Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <input type="text" id="description" name="description" class="form-control" value="{{ request.GET.description }}">
+                        </div>
+
+                        <!-- Media Type Filter -->
+                        <div class="mb-3">
+                            <label for="mediaType" class="form-label">Media Type</label>
+                            <select id="mediaType" name="media_type" class="form-select">
+                                <option value="" selected>Choose Media Type</option>
+                                <option value="CD" {% if request.GET.media_type == "CD" %}selected{% endif %}>CD</option>
+                                <option value="VINYL" {% if request.GET.media_type == "VINYL" %}selected{% endif %}>Vinyl</option>
+                                <option value="BLU-RAY" {% if request.GET.media_type == "BLU_RAY" %}selected{% endif %}>Blu-ray</option>
+                                <option value="CASSETTE" {% if request.GET.media_type == "CASSETTE" %}selected{% endif %}>Cassette</option>
+                            </select>
+                        </div>
+
+                        <!-- Availability Filter -->
+                        <div class="mb-3">
+                            <label for="availability" class="form-label">Availability</label>
+                            <select id="availability" name="status" class="form-select">
+                                <option value="" selected>Choose Availability</option>
+                                <option value="CHECKED_IN" {% if request.GET.status == "CHECKED_IN" %}selected{% endif %}>Checked In</option>
+                                <option value="IN_CIRCULATION" {% if request.GET.status == "IN_CIRCULATION" %}selected{% endif %}>In Circulation</option>
+                                <option value="BEING_REPAIRED" {% if request.GET.status == "BEING_REPAIRED" %}selected{% endif %}>Being Repaired</option>
+                            </select>
+                        </div>
+
+                        <!-- Filter Button -->
+                        <button class="btn btn-primary btn-lg w-100" type="submit">
+                            Filter
+                        </button>
+                    </form>
+
                 </div>
+
+                <!-- Librarian Actions -->
                 {% if user_type == "Librarian" %}
                     <div class="mt-4">
                         <a href="{% url 'create_collection_item' %}" class="btn btn-success btn-custom w-100">Create New Collection or Item</a>
                     </div>
+                    <div class="mt-2">
+                        <a href="{% url 'manage_collections' %}" class="btn btn-primary btn-custom w-100">Manage Collections</a>
+                    </div>
+                <!-- Patron Actions -->
+                {% elif user_type == "Patron" %}
+                    <div class="mt-4">
+                        <a href="{% url 'create_collection_patron' %}" class="btn btn-success btn-custom w-100">Create Collection</a>
+                    </div>
+                    <div class="mt-2">
+                        <a href="{% url 'manage_collections_patron' %}" class="btn btn-primary btn-custom w-100">Manage My Collections</a>
+                    </div>
                 {% endif %}
+
             </div>
 
-            <div class="col-md-9">
+            <!-- Main Content Display -->
+            <div class="col-md-7">
                 <div class="row">
                     {% for item in items %}
                     <div class="col-md-4 mb-4">
                         <div class="card h-100">
+                            <div class="status-indicator
+                                {% if item.status == 'CHECKED_IN' %}status-checked-in{% endif %}
+                                {% if item.status == 'IN_CIRCULATION' %}status-in-circulation{% endif %}
+                                {% if item.status == 'BEING_REPAIRED' %}status-being-repaired{% endif %}">
+                            </div>
                             <div class="card-body">
-                                <img src="{% if item.file_url %}{{ item.file_url }}{% else %}https://cdn4.iconfinder.com/data/icons/public-sign-part03/100/_-14-512.png{% endif %}" alt="{{ item.title }}" class="card-img-top mb-3" style="height: 200px; object-fit: cover;">
+                                <img src="{% if item.file_url %}{{ item.file_url }}{% else %}https://cdn4.iconfinder.com/data/icons/public-sign-part03/100/_-14-512.png{% endif %}"
+                                     alt="{{ item.title }}"
+                                     class="card-img-top mb-3"
+                                     style="height: 200px; object-fit: cover;">
                                 <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }}</h6>
+                                <p class="card-text text-secondary small">{{ item.owner.first_name }}</p>
                                 <p class="card-text text-secondary small">{{ item.description }}</p>
                                 <p class="card-text"><small class="text-muted">Posted on {{ item.created_at|date:"F j, Y" }}</small></p>
                             </div>
@@ -139,10 +310,20 @@
                     {% endfor %}
                 </div>
             </div>
+
+
+            <!-- Status Legend -->
+            <div class="col-md-2">
+                <div class="legend">
+                    <h6 class="fw-bold">Status Legend</h6>
+                    <p><span class="legend-circle legend-checked-in"></span> Checked In</p>
+                    <p><span class="legend-circle legend-in-circulation"></span> In Circulation</p>
+                    <p><span class="legend-circle legend-being-repaired"></span> Being Repaired</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-light py-3">
         <div class="container text-center">
             <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
@@ -150,5 +331,38 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let maxVisibleCollections = 100;  // Display only the first 100 collections
+            const searchInput = document.getElementById('collectionSearch');
+            const collectionList = document.getElementById('collectionList');
+            const collectionItems = collectionList.getElementsByClassName('collection-item');
+
+            searchInput.addEventListener('input', function () {
+                const filter = searchInput.value.toLowerCase();
+                let visibleCount = 0;
+
+                Array.from(collectionItems).forEach((item) => {
+                    if (visibleCount < maxVisibleCollections && item.textContent.toLowerCase().indexOf(filter) > -1) {
+                        item.style.display = 'block';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+
+            // Initially display only the first 100 collections
+            let visibleCount = 0;
+            Array.from(collectionItems).forEach((item) => {
+                if (visibleCount < maxVisibleCollections) {
+                    item.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

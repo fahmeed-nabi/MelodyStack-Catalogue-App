@@ -173,6 +173,7 @@ AUTHENTICATION_BACKENDS = {
     'allauth.account.auth_backends.AuthenticationBackend',
 }
 
+LOGIN_URL = "/music/login/"
 LOGIN_REDIRECT_URL = "/music/login"
 LOGOUT_REDIRECT_URL = "/music/login"
 SOCIALACCOUNT_LOGIN_ON_GET = True
@@ -198,7 +199,7 @@ STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
-            "bucket_name": 'os.environ.get('BUCKET_NAME')',
+            "bucket_name": os.environ.get('BUCKET_NAME'),
         },
     },
 

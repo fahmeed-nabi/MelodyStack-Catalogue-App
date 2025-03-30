@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Collection</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        .error-message {
+            color: red;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        /* Scrollable container styling */
+        .scroll-container {
+            max-height: 200px; /* Set maximum height for the field */
+            overflow-y: auto; /* Enable vertical scrolling */
+            border: 1px solid #ddd; /* Add border around the field */
+            padding: 10px; /* Add padding inside the container */
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+
+        /* Search bar styling */
+        #privateUserSearch {
+            width: 100%;
+            margin-bottom: 10px;
+            border-radius: 30px;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+        }
+
+        #privateUserSearch:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Edit Collection: {{ collection.title }}</h2>
+
+        <!-- Display error and success messages -->
+        {% if messages %}
+            <div class="alert alert-danger" id="messages-alert">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Collection Title -->
+            <div class="mb-3">
+                <label for="title" class="form-label">Collection Title:</label>
+                <input type="text" id="title" name="title" class="form-control" value="{{ collection_form.title.value }}" maxlength="100" required>
+            </div>
+
+            <!-- Collection Description -->
+            <div class="mb-3">
+                <label for="description" class="form-label">Description:</label>
+                <textarea id="description" name="description" class="form-control" rows="4" maxlength="500">{{ collection_form.description.value }}</textarea>
+            </div>
+
+            <!-- Public Checkbox -->
+            <div class="mb-3">
+                <label for="public" class="form-check-label">Public:</label>
+                <input type="checkbox" id="public" name="public" class="form-check-input" {% if collection.public %}checked{% endif %}>
+            </div>
+
+            <!-- Private Users Section -->
+            <div class="mb-3">
+                <label for="privateUserSearch" class="form-label">Search Private Users:</label>
+                <!-- Search Bar for Filtering Private Users -->
+                <input type="text" id="privateUserSearch" class="form-control" placeholder="Search users...">
+
+                <!-- Scrollable Private Users Selection -->
+                <div id="privateUsersList" class="scroll-container">
+                    {% for patron in all_patrons %}
+                        <div class="form-check">
+                            <!-- Check if the patron is already part of the collection's private_users -->
+                            <input class="form-check-input private-user-checkbox" type="checkbox" id="patron-{{ patron.id }}" name="private_users"
+                                   value="{{ patron.id }}" {% if patron in collection.private_users.all %}checked{% endif %}>
+                            <label class="form-check-label" for="patron-{{ patron.id }}">{{ patron.name }}</label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="collection-error-message" class="error-message">You cannot select both a public collection and private users. Please choose one option.</div>
+
+            <!-- Submit and Cancel Buttons -->
+            <button type="submit" name="submit_collection" class="btn btn-primary mt-3">Save Changes</button>
+            <a href="{% url 'manage_collections' %}" class="btn btn-secondary mt-3">Cancel</a>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize search and validation for Private Users field
+            const privateUserSearch = document.getElementById('privateUserSearch');
+            const privateUsersList = document.getElementById('privateUsersList');
+            const privateUserCheckboxes = privateUsersList.getElementsByClassName('form-check');
+
+            const publicCheckbox = document.getElementById("public");
+            const errorMessage = document.getElementById("collection-error-message");
+
+            // Filter private users based on search input
+            privateUserSearch.addEventListener('input', function () {
+                const searchTerm = privateUserSearch.value.toLowerCase();
+
+                Array.from(privateUserCheckboxes).forEach(function (user) {
+                    const label = user.querySelector('.form-check-label');
+                    if (label.textContent.toLowerCase().includes(searchTerm)) {
+                        user.style.display = 'block';
+                    } else {
+                        user.style.display = 'none';
+                    }
+                });
+            });
+
+            // Handle public checkbox change and private users validation
+            publicCheckbox.addEventListener("change", function () {
+                const privateUsersChecked = privateUsersList.querySelectorAll('input:checked').length > 0;
+                if (this.checked && privateUsersChecked) {
+                    errorMessage.style.display = "block";
+                } else {
+                    errorMessage.style.display = "none";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
