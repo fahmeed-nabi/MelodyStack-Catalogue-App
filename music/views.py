@@ -925,6 +925,7 @@ def deny_request(request, borrow_request_id, user_id):
 
 @login_required
 def outgoing_requests(request):
+    print("hello")
     """
     Shows borrow requests made by the logged-in user.
     """
