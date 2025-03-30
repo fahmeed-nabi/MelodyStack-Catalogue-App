@@ -216,7 +216,7 @@ class BorrowRequester(models.Model):
         ('DENIED', 'Denied')
     ]
 
-    request_user = models.OneToOneField(User, related_name="request_user", on_delete=models.CASCADE)
+    request_user = models.ForeignKey(User, related_name="request_user", on_delete=models.CASCADE)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='PENDING'
     )
