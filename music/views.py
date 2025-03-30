@@ -910,7 +910,7 @@ def deny_request(request, borrow_request_id, user_id):
     if borrow_requester_to_approve in borrow_request.requesters.all():
         borrow_requester_to_approve.status = 'DENIED'
         borrow_requester_to_approve.save()
-        messages.warning(request, f"Borrow request for {user_to_deny.first_name} has been denied.")
+        messages.warning(request, f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been denied.")
 
     return redirect("incoming_requests")
 
