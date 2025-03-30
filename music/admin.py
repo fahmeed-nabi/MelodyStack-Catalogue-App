@@ -15,7 +15,7 @@ class BorrowRequestAdmin(admin.ModelAdmin):
     fields = ["requested_item", "item_owner", "requesters"]
 
 class BorrowRequesterAdmin(admin.ModelAdmin):
-    fields = ["request_user", "status", "associated_item"]
+    fields = ["request_user", "status", "associated_request"]
     
 
 admin.site.register(Item)
@@ -23,5 +23,5 @@ admin.site.register(Collection, CollectionAdmin)
 admin.site.register(Librarian, LibrarianAdmin)
 admin.site.register(Patron, PatronAdmin)
 admin.site.register(BorrowRequest, BorrowRequestAdmin)
-admin.site.register(BorrowRequester, BorrowRequestAdmin)
+admin.site.register(BorrowRequester, BorrowRequesterAdmin)
 
