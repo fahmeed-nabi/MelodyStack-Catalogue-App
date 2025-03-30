@@ -348,6 +348,29 @@ def librarian_settings_view(request):
     })
 
 @login_required
+def patron_promotion_view(request):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+    
+    # Migrate this method perhaps into edit collections
+
+def promote_patron(request, collection_id):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if user_type != "Patron":
+        return redirect("librarian")
+
+    Patron.objects.adelete(curr_user)
+    Librarian.objects.aupdate_or_create(curr_user)
+    return redirect("patron_promotion_view")
+
+@login_required
 def create_collection_item(request):
     curr_user = get_user(request)
     user_type = get_user_type(curr_user)
