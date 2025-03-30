@@ -688,8 +688,13 @@ def create_collection_patron(request):
     user_type = get_user_type(curr_user)
     curr_patron = Patron.objects.filter(user=curr_user).first()
 
-    if user_type != "Patron":
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
         return redirect("librarian")
+
+    # Fetch items that are not in any private collection
+    available_items = Item.objects.filter(~Q(collections__public=False)).distinct()
 
     if request.method == 'POST':
         collection_form = CollectionForm(request.POST)
@@ -707,6 +712,11 @@ def create_collection_patron(request):
 
             collection.save()
 
+            # Add selected items to the collection
+            item_ids = request.POST.getlist('items')  # Get selected item IDs from the form
+            selected_items = Item.objects.filter(id__in=item_ids)
+            collection.items.add(*selected_items)
+
             return redirect("collections")
         else:
             messages.error(request, "There was an error creating the collection. Please check the form and try again.")
@@ -716,6 +726,7 @@ def create_collection_patron(request):
 
     context = {
         'collection_form': collection_form,
+        'available_items': available_items,  # Pass available items to the template
     }
     return render(request, 'music/create_collection_patron.html', context)
 
@@ -753,9 +764,12 @@ def edit_collection_patron(request, title, collection_id):
     if not request.user.is_authenticated:
         return redirect(reverse("login"))
     elif user_type != "Patron":
-        return redirect("patron")
+        return redirect("librarian")
 
     collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
+
+    # Fetch items that are not in any private collections
+    available_items = Item.objects.filter(~Q(collections__public=False)).distinct()
 
     collection_form = CollectionForm(instance=collection)
 
@@ -770,6 +784,12 @@ def edit_collection_patron(request, title, collection_id):
                 else:
                     collection.public = True  # Forces the collection to be public
                     collection_form.save()
+
+                    # Update items in the collection
+                    item_ids = request.POST.getlist('items')  # Get selected item IDs from the form
+                    selected_items = Item.objects.filter(id__in=item_ids)
+                    collection.items.set(selected_items)  # Replace existing items with selected ones
+
                     return redirect('manage_collections_patron')
             else:
                 messages.error(request, "There was an error updating the collection. Please check the form.")
@@ -777,8 +797,10 @@ def edit_collection_patron(request, title, collection_id):
     context = {
         'collection_form': collection_form,
         'collection': collection,
+        'available_items': available_items,
     }
     return render(request, 'music/edit_collection_patron.html', context)
+
 
 
 @login_required
@@ -795,7 +817,7 @@ def delete_collection_patron(request, title, collection_id):
     if not request.user.is_authenticated:
         return redirect(reverse("login"))
     elif user_type != "Patron":
-        return redirect("patron")
+        return redirect("librarian")
 
     original_title = title.replace('-', ' ')
     collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
@@ -843,6 +865,8 @@ def incoming_requests(request):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
     if user_type != "Librarian":
         return redirect("patron")
 
@@ -862,6 +886,8 @@ def approve_request(request, borrow_request_id, user_id):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
     if user_type != "Librarian":
         return redirect("patron")
 
@@ -901,6 +927,8 @@ def deny_request(request, borrow_request_id, user_id):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
     if user_type != "Librarian":
         return redirect("patron")
 

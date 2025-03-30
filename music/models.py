@@ -138,7 +138,13 @@ class Collection(models.Model):
 
     # Delete all items associated with this collection
     def delete(self, *args, **kwargs):
-        self.items.all().delete()
+        for item in self.items.all():
+            item.collections.remove(self)
+
+            # If the item no longer belongs to any collections, clear its collections field
+            if item.collections.count() == 0:
+                item.collections.clear()
+
         super().delete(*args, **kwargs)
 
     def __str__(self):
