@@ -12,7 +12,7 @@ from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 User = get_user_model()
 
 from . import aws
-from .models import Item, Librarian, Patron, Collection, BorrowRequest
+from .models import Item, Librarian, Patron, Collection, BorrowRequest, BorrowRequester
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm, FilterForm
 from .utils import get_user_type, get_accessible_collections
 from mysite.settings import os.environ.get('BUCKET_NAME')
@@ -214,7 +214,7 @@ class ItemDetailView(DetailView):
 
         already_requested = False
         if borrow_request:
-            already_requested = curr_user in borrow_request.requesters.all()
+            already_requested = borrow_request.requesters.filter(request_user=curr_user).exists()
 
         if item.image:
             file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
@@ -821,13 +821,16 @@ def borrow_redir(request, pk):
 
     # Get or create a borrow request for this item
     borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=owner)
+    borrow_requester, created = BorrowRequester.objects.get_or_create(request_user=requester, associated_request=borrow_request)
 
     if requester in borrow_request.requesters.all():
         messages.error(request, "ERROR: You have already requested this item! Please wait to be approved.")
         return redirect("item_detail", pk=pk)
 
     # Add the user to requesters list
-    borrow_request.requesters.add(requester)
+    borrow_request.requesters.add(borrow_requester)
+    borrow_request.save()
+    borrow_requester.save()
     messages.success(request, "Success! Your request has been sent.")
     return redirect("item_detail", pk=pk)
 
@@ -863,16 +866,32 @@ def approve_request(request, borrow_request_id, user_id):
         return redirect("patron")
 
     borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
-    user_to_approve = get_object_or_404(User, pk=user_id)
+    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
 
-    if user_to_approve in borrow_request.requesters.all():
-        borrow_request.requesters.remove(user_to_approve)
-        borrow_request.status = "APPROVED"
-        borrow_request.save()
-        messages.success(request, f"Borrow request for {user_to_approve.first_name} has been approved.")
+    if borrow_requester_to_approve in borrow_request.requesters.all():
+        for u in borrow_request.requesters.all():
+            u.status = 'DENIED'
+            u.save()
+        borrow_requester_to_approve.status = 'APPROVED'
+        borrow_requester_to_approve.save()
+        item = borrow_request.requested_item
+        item.status = 'BORROWED'
+        item.save()
+        messages.success(request, f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been approved.")
 
     return redirect("incoming_requests")
 
+    # if user_to_approve in borrow_request.requesters.all():
+    #     borrow_request.requesters.remove(user_to_approve)
+    #     borrow_request.status = "APPROVED"
+    #     borrow_request.save()
+    #     item = borrow_request.requested_item
+    #     item.status = 'BORROWED'
+    #     item.save()
+
+    #     messages.success(request, f"Borrow request for {user_to_approve.first_name} has been approved.")
+
+    
 
 @login_required
 def deny_request(request, borrow_request_id, user_id):
@@ -888,10 +907,17 @@ def deny_request(request, borrow_request_id, user_id):
     borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
     user_to_deny = get_object_or_404(User, pk=user_id)
 
-    if user_to_deny in borrow_request.requesters.all():
-        borrow_request.requesters.remove(user_to_deny)
-        borrow_request.status = "DENIED"
-        borrow_request.save()
+    # if user_to_deny in borrow_request.requesters.all():
+    #     borrow_request.requesters.remove(user_to_deny)
+    #     borrow_request.status = "DENIED"
+    #     borrow_request.save()
+    #     messages.warning(request, f"Borrow request for {user_to_deny.first_name} has been denied.")
+
+    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
+
+    if borrow_requester_to_approve in borrow_request.requesters.all():
+        borrow_requester_to_approve.status = 'DENIED'
+        borrow_requester_to_approve.save()
         messages.warning(request, f"Borrow request for {user_to_deny.first_name} has been denied.")
 
     return redirect("incoming_requests")
@@ -905,8 +931,10 @@ def outgoing_requests(request):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
+    outgoing_list = BorrowRequester.objects.filter(request_user=curr_user)
+
     # Find borrow requests where the user is in the requesters list
-    outgoing_list = BorrowRequest.objects.filter(requesters=curr_user)
+    # outgoing_list = BorrowRequest.objects.filter(requesters=curr_user)
 
     return render(request, "music/outgoing_borrow_requests.html", {
         "outgoing_list": outgoing_list,

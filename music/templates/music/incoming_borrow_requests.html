@@ -8,20 +8,38 @@
     <style>
         .collection-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 15px;
+            justify-content: flex-start;
+            flex-direction: column;
+            padding: 10px 15px 3px 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
             margin-bottom: 10px;
             background-color: #f8f9fa;
+        }
+        .request-user {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+ 
+        }
+        .request-username {
+            font-weight: 400;
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 10px; 
         }
         .collection-item:hover {
             background-color: #e9ecef;
         }
         .collection-title {
             font-weight: 500;
+            font-size: 25px;
             color: #2c3e50;
+            margin-bottom: 10px;
         }
         .action-buttons {
             display: flex;
@@ -85,6 +103,14 @@
         <h1 class="text-center text-uppercase fw-light text-dark mb-4">Manage Incoming Requests</h1>
 
         <!-- Search Bar and All Private Collection Requests button -->
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %} alert-danger {% elif message.tags == 'success' %} alert-success {% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
         <div class="search-bar-container">
             <input type="text" id="searchBar" class="form-control search-bar" placeholder="Search requests..." />
         </div>
@@ -92,17 +118,27 @@
         {% if incoming_list %}
             <div id="collectionsList">
                 {% for incoming_request in incoming_list %}
-                    {% if incoming_request.status == 'PENDING'%}
+                    {% if incoming_request.requesters.all %}
                         <div class="collection-item">
                             <!-- Collection Title -->
-                            <span class="collection-title">{{ incoming_request.requested_item.title }} - Requested by {{ incoming_request.requester.first_name }}</span>
+                            <span class="collection-title">{{ incoming_request.requested_item.title }}</span>
 
+                            <ul>
+                                {% for requester in incoming_request.requesters.all %}
+                                    {% if requester.status == 'PENDING' %}
+                                        <div class="request-user">
+                                            <span class="request-username"> Requested by {{ requester.request_user.first_name }} </span>
+                                            <div class="action-buttons">
+                                                <a href="{% url 'approve_request' incoming_request.id requester.id%}" class="btn btn-success btn-sm">Approve</a>
+                                                <a href="{% url 'deny_request' incoming_request.id requester.id %}" class="btn btn-danger btn-sm">Deny</a>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+    
+                            </ul>
                             <!-- Action Buttons -->
-                            <div class="action-buttons">
-                                <a href="{% url 'approve_request' incoming_request.id %}" class="btn btn-success btn-sm">Approve</a>
-                                <a href="{% url 'deny_request' incoming_request.id %}" class="btn btn-danger btn-sm">Deny</a>
-                            </div>
-                        </div>
+                       </div>
                     {% endif %}
                 {% endfor %}
             </div>
