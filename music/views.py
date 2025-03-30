@@ -905,14 +905,6 @@ def deny_request(request, borrow_request_id, user_id):
         return redirect("patron")
 
     borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
-    user_to_deny = get_object_or_404(User, pk=user_id)
-
-    # if user_to_deny in borrow_request.requesters.all():
-    #     borrow_request.requesters.remove(user_to_deny)
-    #     borrow_request.status = "DENIED"
-    #     borrow_request.save()
-    #     messages.warning(request, f"Borrow request for {user_to_deny.first_name} has been denied.")
-
     borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
 
     if borrow_requester_to_approve in borrow_request.requesters.all():
