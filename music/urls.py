@@ -37,9 +37,9 @@ librarian_urls = [
     path('librarian/manage_collections/view_requests/<int:collection_id>/', views.view_private_collection_requests,
          name='view_requests'),
     path('librarian/manage_collections/all_private_requests/', views.all_private_requests, name='all_private_requests'),
-    path('librarian/incoming_requests/approve_request/<int:borrow_request_id>', views.approve_request,
+    path('librarian/incoming_requests/approve_request/<int:borrow_request_id>/<int:user_id>', views.approve_request,
          name="approve_request"),
-    path('librarian/incoming_requests/deny_request/<int:borrow_request_id>', views.deny_request, name="deny_request"),
+    path('librarian/incoming_requests/deny_request/<int:borrow_request_id>/<int:user_id>', views.deny_request, name="deny_request"),
     path('librarian/outgoing_requests', views.outgoing_requests, name="outgoing_requests"),
 ]
 

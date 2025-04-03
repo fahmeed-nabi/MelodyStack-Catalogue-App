@@ -10,17 +10,24 @@ User = get_user_model()
 
 # Create your tests here.
 
+# Makes sure login page is able to be rendered with no errors
+# Does not use logged in user 
 class RenderLoginPage(TestCase):
     def test_render_login_page(self):
         response = self.client.get(reverse("login"))
         self.assertEqual(response.status_code, 200)
 
+# Makes sure public collections pag eis able to be rendered with no errors
+# Does not use logged in user
 class RenderingAnonymousFrontPage(TestCase):
     def test_render_anonymous_front_page(self):
         response = self.client.get(reverse("collections"))
         self.assertEqual(response.status_code, 200)
 
+# These test cases test different redirects
 class TestLoginRedirects(TestCase):
+
+    # Sets up a sample user
     def setUp(self):
         username = "testinguser"
         first_name = "Testing"
@@ -34,6 +41,7 @@ class TestLoginRedirects(TestCase):
             email=email_address
             )
 
+    # Tests automatic creation of patron on new user login
     def test_patron_redirect_new_user(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse("redir"))
@@ -43,6 +51,7 @@ class TestLoginRedirects(TestCase):
 
         self.assertRedirects(response, reverse("patron"))
 
+    # Tests existing patron login
     def test_patron_redirect_existing_user(self):
 
         existing_patron = Patron.objects.create(
@@ -64,6 +73,7 @@ class TestLoginRedirects(TestCase):
 
         self.assertRedirects(response, reverse("patron"))
     
+    # Tests for existing librarian login
     def test_librarian_redirect_existing_user(self):
 
         existing_librarian = Librarian.objects.create(
