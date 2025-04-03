@@ -592,6 +592,7 @@ class ItemEditView(UpdateView):
         return reverse_lazy('item_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
+        # Validation logic remains unchanged
         description = form.cleaned_data['description']
         image = form.cleaned_data.get('image')
         allowed_extensions = ['jpg', 'jpeg', 'png']
@@ -637,6 +638,12 @@ class ItemEditView(UpdateView):
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
         context['user_type'] = user_type
+
+        # Add current title and description lengths to context
+        item = self.object
+        context['current_title_remaining'] = 100 - len(item.title) if item.title else 0
+        context['current_description_remaining'] = 500 - len(item.description) if item.description else 0
+
         return context
 
     def dispatch(self, request, *args, **kwargs):
@@ -651,6 +658,7 @@ class ItemEditView(UpdateView):
             return redirect("patron")
 
         return super().dispatch(request, *args, **kwargs)
+
 
 
 class ItemDeleteView(DeleteView):

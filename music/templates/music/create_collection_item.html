@@ -113,14 +113,23 @@
                     <h4>Create Collection</h4>
                     <div class="mb-3">
                         <label for="collection-title">Title:</label>
-                        <input type="text" id="collection-title" name="title" class="form-control" maxlength="100" required>
-                        <div class="char-count" id="collection-title-char-count">100 characters remaining</div>
+                        <input type="text" id="collection-title" name="title" class="form-control" maxlength="100" required
+                               value="{{ collection_form.title.value|default:'' }}"
+                               oninput="updateCollectionTitleCharCount()">
+                        <div class="char-count" id="collection-title-char-count">
+                            100 characters remaining
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label for="collection-description">Description:</label>
-                        <textarea id="collection-description" name="description" class="form-control" rows="4" maxlength="500"></textarea>
-                        <div class="char-count" id="collection-description-char-count">500 characters remaining</div>
+                        <textarea id="collection-description" name="description" class="form-control" rows="4" maxlength="500"
+                                  oninput="updateCollectionDescriptionCharCount()">{{ collection_form.description.value|default:'' }}</textarea>
+                        <div class="char-count" id="collection-description-char-count">
+                            500 characters remaining
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label for="collection-public">Public:</label>
                         <input type="checkbox" id="collection-public" name="public">
@@ -153,14 +162,23 @@
                     <h4>Create Item</h4>
                     <div class="mb-3">
                         <label for="item-title">Title:</label>
-                        <input type="text" id="item-title" name="title" class="form-control" maxlength="100" required>
-                        <div class="char-count" id="item-title-char-count">100 characters remaining</div>
+                        <input type="text" id="item-title" name="title" class="form-control" maxlength="100" required
+                               value="{{ item_form.title.value|default:'' }}"
+                               oninput="updateItemTitleCharCount()">
+                        <div class="char-count" id="item-title-char-count">
+                            100 characters remaining
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label for="item-description">Description:</label>
-                        <textarea id="item-description" name="description" class="form-control" rows="4" maxlength="500" required></textarea>
-                        <div class="char-count" id="item-description-char-count">500 characters remaining</div>
+                        <textarea id="item-description" name="description" class="form-control" rows="4" maxlength="500"
+                                  oninput="updateItemDescriptionCharCount()">{{ item_form.description.value|default:'' }}</textarea>
+                        <div class="char-count" id="item-description-char-count">
+                            500 characters remaining
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label for="item-status">Status:</label>
                         <select id="item-status" name="status" class="form-control">
@@ -258,6 +276,26 @@
                     }
                 });
             });
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            function updateCharCount(inputId, countId, maxLength) {
+                const inputElement = document.getElementById(inputId);
+                const countElement = document.getElementById(countId);
+
+                inputElement.addEventListener("input", function () {
+                    const remaining = maxLength - inputElement.value.length;
+                    countElement.textContent = `${remaining} characters remaining`;
+                });
+            }
+
+            // Initialize character counters for Collection form
+            updateCharCount("collection-title", "collection-title-char-count", 100);
+            updateCharCount("collection-description", "collection-description-char-count", 500);
+
+            // Initialize character counters for Item form
+            updateCharCount("item-title", "item-title-char-count", 100);
+            updateCharCount("item-description", "item-description-char-count", 500);
         });
     </script>
 </body>

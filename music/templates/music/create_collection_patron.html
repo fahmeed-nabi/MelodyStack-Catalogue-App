@@ -79,14 +79,24 @@
             <!-- Title Field -->
             <div class="mb-3">
                 <label for="title" class="form-label">Collection Title:</label>
-                <input type="text" id="title" name="title" class="form-control" maxlength="100" required>
+                <input type="text" id="title" name="title" class="form-control" maxlength="100" required
+                       oninput="updateCharCount('title', 'title-char-count', 100)">
+                <div id="title-char-count" class="char-count">
+                    100 characters remaining
+                </div>
             </div>
+
 
             <!-- Description Field -->
             <div class="mb-3">
                 <label for="description" class="form-label">Description:</label>
-                <textarea id="description" name="description" class="form-control" rows="4" maxlength="500"></textarea>
+                <textarea id="description" name="description" class="form-control" rows="4" maxlength="500"
+                          oninput="updateCharCount('description', 'description-char-count', 500)"></textarea>
+                <div id="description-char-count" class="char-count">
+                    500 characters remaining
+                </div>
             </div>
+
 
             <!-- Search Bar for Filtering Items -->
             <div class="mb-3">
@@ -141,6 +151,27 @@
             });
         });
     });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        function updateCharCount(inputId, countId, maxLength) {
+            const inputElement = document.getElementById(inputId);
+            const countElement = document.getElementById(countId);
+
+            inputElement.addEventListener("input", function () {
+                const remaining = maxLength - inputElement.value.length;
+                countElement.textContent = `${remaining} characters remaining`;
+            });
+
+            // Initialize character count on page load
+            const initialRemaining = maxLength - inputElement.value.length;
+            countElement.textContent = `${initialRemaining} characters remaining`;
+        }
+
+        // Initialize character counters for Title and Description fields
+        updateCharCount("title", "title-char-count", 100);
+        updateCharCount("description", "description-char-count", 500);
+    });
+
     </script>
 </body>
 </html>

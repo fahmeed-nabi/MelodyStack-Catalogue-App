@@ -6,7 +6,6 @@ auth_urls = [
     path("login/", views.login_page, name='login'),
     path('redir', views.redir, name="redir"),
     path("logout", views.logout_view, name="logout_view"),
-    path('borrow_redir/<int:pk>/', views.borrow_redir, name='borrow_redirect'),
 ]
 
 # Collection-related URLs
@@ -21,6 +20,7 @@ item_urls = [
     path('item/<int:pk>/', views.ItemDetailView.as_view(), name='item_detail'),
     path('item/<int:pk>/edit/', views.ItemEditView.as_view(), name='item_edit'),
     path('item/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
+    path('borrow_redir/<int:pk>/', views.borrow_redir, name='borrow_redirect'),
 ]
 
 # Librarian-related URLs
