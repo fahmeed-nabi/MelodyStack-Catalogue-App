@@ -153,6 +153,7 @@
         {% endif %}
     </header>
 
+
     <div class="container mt-5">
         <h1 class="text-center text-uppercase fw-light text-dark mb-4">
             {% if active_collection %}
@@ -295,6 +296,7 @@
                                      style="height: 200px; object-fit: cover;">
                                 <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }}</h6>
+                                <p class="card-text text-secondary small">{{ item.owner.first_name }}</p>
                                 <p class="card-text text-secondary small">{{ item.description }}</p>
                                 <p class="card-text"><small class="text-muted">Posted on {{ item.created_at|date:"F j, Y" }}</small></p>
                             </div>

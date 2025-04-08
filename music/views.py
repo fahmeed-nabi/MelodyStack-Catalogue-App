@@ -1,15 +1,18 @@
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.messages.storage import default_storage
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.views import generic
-from django.contrib.auth import get_user, logout
+from django.contrib.auth import get_user, logout, get_user_model
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 
+User = get_user_model()
+
 from . import aws
-from .models import Item, Librarian, Patron, Collection
+from .models import Item, Librarian, Patron, Collection, BorrowRequest, BorrowRequester
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm, FilterForm
 from .utils import get_user_type, get_accessible_collections
 from mysite.settings import os.environ.get('BUCKET_NAME')
@@ -30,10 +33,12 @@ def login_page(request):
         return render(request, "music/login_page.html")
 
 
+
 def redir(request):
     curr_user = get_user(request)
     librarians = Librarian.objects.filter(user=curr_user)
     patrons = Patron.objects.filter(user=curr_user)
+    list(messages.get_messages(request))
 
     if librarians.exists():
         return redirect("librarian")
@@ -195,30 +200,48 @@ class ItemDetailView(DetailView):
     context_object_name = "item"
 
     def get_object(self):
-        """
-        Fetches the item based on its primary key (id).
-        """
+        """Fetches the item based on its primary key (id)."""
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
     def get_context_data(self, **kwargs):
-        """
-        Add item data
-        """
-        curr_user = get_user(self.request)
+        """Add item data."""
+        curr_user = self.request.user
         user_type = get_user_type(curr_user)
 
         context = super().get_context_data(**kwargs)
         item = self.get_object()
+        borrow_request = BorrowRequest.objects.filter(requested_item=item).first()
+
+        already_requested = False
+        if borrow_request:
+            already_requested = borrow_request.requesters.filter(request_user=curr_user).exists()
 
         if item.image:
             file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
-            context['file_url'] = file_url
         else:
-            context['file_url'] = None
+            file_url = None
 
-        context['user_type'] = user_type
+        context.update({
+            'file_url': file_url,
+            'user_type': user_type,
+            'status': item.status,
+            'already_requested': already_requested,
+        })
 
         return context
+
+    @login_required
+    def post(self, request, *args, **kwargs):
+        """Handles borrowing requests."""
+        item = self.get_object()
+        borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=item.owner)
+
+        if request.user in borrow_request.requesters.all():
+            messages.warning(request, "You have already requested this item.")
+        else:
+            borrow_request.requesters.add(request.user)
+
+        return redirect("item_detail", pk=item.pk)
 
 @login_required
 def librarian_page(request):
@@ -387,7 +410,7 @@ def create_collection_item(request):
         if "submit_collection" in request.POST:  # User is submitting a Collection
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title=title).exists():  # Check for duplicate title
+                if Collection.objects.filter(title__iexact=title).exists():  # Check for duplicate title
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
@@ -416,7 +439,11 @@ def create_collection_item(request):
                 elif num_private_collections > 1:
                     messages.error(request, "Item cannot be in more than one private collection.")
                 else:
-                    item_form.save()
+                    new_item = item_form.save(commit=False)
+                    new_item.owner = curr_user
+                    new_item.save()
+                    new_item.collections.set(item_form.cleaned_data['collections'])
+                    new_item.save()
                     return redirect('collections')
             else:
                 messages.error(request, "Failed to create the item. Please upload an image in .jpg, .jpeg, or .png format.")
@@ -475,7 +502,7 @@ def edit_collection(request, title, collection_id):
         if "submit_collection" in request.POST:  # User is editing the Collection
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title=title).exists():  # Check for duplicate titles
+                if Collection.objects.filter(title__iexact=title).exists():  # Check for duplicate titles
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
@@ -693,7 +720,7 @@ def create_collection_patron(request):
         if collection_form.is_valid():
             title = collection_form.cleaned_data['title']
             # Check for duplicate titles
-            if Collection.objects.filter(title=title).exists():
+            if Collection.objects.filter(title__iexact=title).exists():
                 messages.error(request, f"A Collection with the title '{title}' already exists.")
                 return redirect("create_collection_patron")
 
@@ -761,7 +788,7 @@ def edit_collection_patron(request, title, collection_id):
         if "submit_collection" in request.POST:
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title=title).exists():  # Check for duplicate titles
+                if Collection.objects.filter(title__iexact=title).exists():  # Check for duplicate titles
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection.public = True  # Forces the collection to be public
@@ -802,3 +829,130 @@ def delete_collection_patron(request, title, collection_id):
 
     return render(request, 'music/delete_collection_patron.html', {'collection': collection})
 
+@login_required
+def borrow_redir(request, pk):
+    """
+    Handles borrowing requests by adding the user to the requesters list.
+    """
+    item = get_object_or_404(Item, pk=pk)
+    owner = item.owner
+    requester = request.user  # Use Django's built-in user system
+
+    if owner == requester:
+        messages.error(request, "ERROR: Cannot request your own item!")
+        return redirect("item_detail", pk=pk)
+
+    # Get or create a borrow request for this item
+    borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=owner)
+    borrow_requester, created = BorrowRequester.objects.get_or_create(request_user=requester, associated_request=borrow_request)
+
+    if requester in borrow_request.requesters.all():
+        messages.error(request, "ERROR: You have already requested this item! Please wait to be approved.")
+        return redirect("item_detail", pk=pk)
+
+    # Add the user to requesters list
+    borrow_request.requesters.add(borrow_requester)
+    borrow_request.save()
+    borrow_requester.save()
+    messages.success(request, "Success! Your request has been sent.")
+    return redirect("item_detail", pk=pk)
+
+
+@login_required
+def incoming_requests(request):
+    """
+    Shows incoming borrow requests for the logged-in user (only librarians).
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    if user_type != "Librarian":
+        return redirect("patron")
+
+    # Fetch all borrow requests where the user is the owner
+    incoming_list = BorrowRequest.objects.filter(item_owner=curr_user)
+
+    return render(request, "music/incoming_borrow_requests.html", {
+        "incoming_list": incoming_list,
+    })
+
+
+@login_required
+def approve_request(request, borrow_request_id, user_id):
+    """
+    Approves a borrow request for a specific user.
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    if user_type != "Librarian":
+        return redirect("patron")
+
+    borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
+    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
+
+    if borrow_requester_to_approve in borrow_request.requesters.all():
+        for u in borrow_request.requesters.all():
+            u.status = 'DENIED'
+            u.save()
+        borrow_requester_to_approve.status = 'APPROVED'
+        borrow_requester_to_approve.save()
+        item = borrow_request.requested_item
+        item.status = 'BORROWED'
+        item.save()
+        messages.success(request, f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been approved.")
+
+    return redirect("incoming_requests")
+
+    # if user_to_approve in borrow_request.requesters.all():
+    #     borrow_request.requesters.remove(user_to_approve)
+    #     borrow_request.status = "APPROVED"
+    #     borrow_request.save()
+    #     item = borrow_request.requested_item
+    #     item.status = 'BORROWED'
+    #     item.save()
+
+    #     messages.success(request, f"Borrow request for {user_to_approve.first_name} has been approved.")
+
+    
+
+@login_required
+def deny_request(request, borrow_request_id, user_id):
+    """
+    Denies a borrow request for a specific user.
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    if user_type != "Librarian":
+        return redirect("patron")
+
+    borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
+    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
+
+    if borrow_requester_to_approve in borrow_request.requesters.all():
+        borrow_requester_to_approve.status = 'DENIED'
+        borrow_requester_to_approve.save()
+        messages.warning(request, f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been denied.")
+
+    return redirect("incoming_requests")
+
+
+@login_required
+def outgoing_requests(request):
+    print("hello")
+    """
+    Shows borrow requests made by the logged-in user.
+    """
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    outgoing_list = BorrowRequester.objects.filter(request_user=curr_user)
+
+    # Find borrow requests where the user is in the requesters list
+    # outgoing_list = BorrowRequest.objects.filter(requesters=curr_user)
+
+    return render(request, "music/outgoing_borrow_requests.html", {
+        "outgoing_list": outgoing_list,
+        "user_type": user_type,
+    })
