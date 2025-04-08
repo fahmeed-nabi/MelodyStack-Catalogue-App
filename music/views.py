@@ -275,6 +275,13 @@ class ItemDetailView(DetailView):
 @login_required
 def librarian_page(request):
     curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
     librarian = Librarian.objects.filter(user=curr_user).first()
 
     if librarian.profile_picture:
@@ -299,6 +306,13 @@ def logout_view(request):
 @login_required
 def patron_page(request):
     curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("librarian")
+
     patron = Patron.objects.filter(user=curr_user).first()
 
     if patron.profile_picture:
