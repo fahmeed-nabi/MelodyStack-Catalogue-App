@@ -414,6 +414,45 @@ def librarian_settings_view(request):
     })
 
 @login_required
+def patron_promotion_view(request):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+    
+    context = {
+        'all_patrons': Patron.objects.all(),
+    }
+    return render(request, 'music/promote_patron.html', context)
+
+def patron_promotion_confirmation(request, patron_id):
+    curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
+    patron = get_object_or_404(Patron, Q(id=patron_id))
+
+    if request.method == "POST":
+        collections = Collection.objects.all()
+        for collection in collections:
+            if collection.is_accessible_by(patron.user):
+                collection.creator = None
+                collection.save()
+        librarian = Librarian(user=patron.user, name=patron.name, google_account=patron.google_account, profile_picture=patron.profile_picture, date_joined=patron.date_joined, bio=patron.bio, birthday=patron.birthday)
+        librarian.save()
+        patron.delete()
+        return redirect("promote_patron")
+
+    return render(request, 'music/promote_patron_confirmation.html', {'patron': patron})
+
+@login_required
 def create_collection_item(request):
     curr_user = get_user(request)
     user_type = get_user_type(curr_user)
