@@ -41,6 +41,8 @@ librarian_urls = [
          name="approve_request"),
     path('librarian/incoming_requests/deny_request/<int:borrow_request_id>/<int:user_id>', views.deny_request, name="deny_request"),
     path('librarian/outgoing_requests', views.outgoing_requests, name="outgoing_requests"),
+    path('librarian/promote_patron', views.patron_promotion_view, name="promote_patron"),
+    path('librarian/promote_patron_confirmation/<int:patron_id>', views.patron_promotion_confirmation, name="promote_patron_confirmation"),
 ]
 
 # Patron-related URLs

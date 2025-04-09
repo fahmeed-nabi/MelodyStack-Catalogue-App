@@ -87,8 +87,8 @@ class Patron(models.Model):
     def __str__(self):
         return self.name
 
-    def delete(self, *args, **kwargs):
-        if self.profile_picture:
+    def delete(self, promote=False, *args, **kwargs):
+        if self.profile_picture and not promote:
             aws.delete_file(self.profile_picture.name, os.environ.get('BUCKET_NAME'))
         super().delete(*args, **kwargs)
 
