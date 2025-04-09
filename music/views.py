@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.messages.storage import default_storage
@@ -200,52 +201,87 @@ class ItemDetailView(DetailView):
     context_object_name = "item"
 
     def get_object(self):
-        """Fetches the item based on its primary key (id)."""
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
     def get_context_data(self, **kwargs):
-        """Add item data."""
         curr_user = self.request.user
         user_type = get_user_type(curr_user)
 
         context = super().get_context_data(**kwargs)
         item = self.get_object()
-        borrow_request = BorrowRequest.objects.filter(requested_item=item).first()
 
-        already_requested = False
-        if borrow_request:
-            already_requested = borrow_request.requesters.filter(request_user=curr_user).exists()
-
-        if item.image:
-            file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
-        else:
-            file_url = None
+        # Check if the current user has already saved this item
+        already_saved = False
+        if user_type == "Patron":
+            patron = Patron.objects.filter(user=curr_user).first()
+            if patron and item in patron.saved_items.all():
+                already_saved = True
+        elif user_type == "Librarian":
+            librarian = Librarian.objects.filter(user=curr_user).first()
+            if librarian and item in librarian.saved_items.all():
+                already_saved = True
 
         context.update({
-            'file_url': file_url,
+            'file_url': aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME')) if item.image else None,
             'user_type': user_type,
-            'status': item.status,
-            'already_requested': already_requested,
+            'already_saved': already_saved,
         })
 
         return context
 
-    @login_required
     def post(self, request, *args, **kwargs):
-        """Handles borrowing requests."""
+        """
+        Handles saving and unsaving an item for both Patrons and Librarians.
+        """
         item = self.get_object()
-        borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=item.owner)
+        curr_user = request.user
+        user_type = get_user_type(curr_user)
 
-        if request.user in borrow_request.requesters.all():
-            messages.warning(request, "You have already requested this item.")
+        if not curr_user.is_authenticated:
+            return JsonResponse({'message': 'You must be logged in to save items.'}, status=403)
+
+        # Toggle the saved state based on user type
+        if user_type == "Patron":
+            patron = Patron.objects.filter(user=curr_user).first()
+            if patron:
+                if item in patron.saved_items.all():
+                    patron.saved_items.remove(item)
+                    message = "Item unsaved successfully."
+                else:
+                    patron.saved_items.add(item)
+                    message = "Item saved successfully."
+                patron.save()
+            else:
+                return JsonResponse({'message': 'Error: Patron not found.'}, status=404)
+
+        elif user_type == "Librarian":
+            librarian = Librarian.objects.filter(user=curr_user).first()
+            if librarian:
+                if item in librarian.saved_items.all():
+                    librarian.saved_items.remove(item)
+                    message = "Item unsaved successfully."
+                else:
+                    librarian.saved_items.add(item)
+                    message = "Item saved successfully."
+                librarian.save()
+            else:
+                return JsonResponse({'message': 'Error: Librarian not found.'}, status=404)
+
         else:
-            borrow_request.requesters.add(request.user)
+            return JsonResponse({'message': 'Invalid user type.'}, status=400)
 
-        return redirect("item_detail", pk=item.pk)
+        return JsonResponse({'message': message})
 
 @login_required
 def librarian_page(request):
     curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Librarian":
+        return redirect("patron")
+
     librarian = Librarian.objects.filter(user=curr_user).first()
 
     if librarian.profile_picture:
@@ -270,6 +306,13 @@ def logout_view(request):
 @login_required
 def patron_page(request):
     curr_user = get_user(request)
+    user_type = get_user_type(curr_user)
+
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
+        return redirect("librarian")
+
     patron = Patron.objects.filter(user=curr_user).first()
 
     if patron.profile_picture:
@@ -631,6 +674,7 @@ class ItemEditView(UpdateView):
         return reverse_lazy('item_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
+        # Validation logic remains unchanged
         description = form.cleaned_data['description']
         image = form.cleaned_data.get('image')
         allowed_extensions = ['jpg', 'jpeg', 'png']
@@ -676,6 +720,12 @@ class ItemEditView(UpdateView):
         curr_user = get_user(self.request)
         user_type = get_user_type(curr_user)
         context['user_type'] = user_type
+
+        # Add current title and description lengths to context
+        item = self.object
+        context['current_title_remaining'] = 100 - len(item.title) if item.title else 0
+        context['current_description_remaining'] = 500 - len(item.description) if item.description else 0
+
         return context
 
     def dispatch(self, request, *args, **kwargs):
@@ -690,6 +740,7 @@ class ItemEditView(UpdateView):
             return redirect("patron")
 
         return super().dispatch(request, *args, **kwargs)
+
 
 
 class ItemDeleteView(DeleteView):
@@ -727,8 +778,13 @@ def create_collection_patron(request):
     user_type = get_user_type(curr_user)
     curr_patron = Patron.objects.filter(user=curr_user).first()
 
-    if user_type != "Patron":
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+    elif user_type != "Patron":
         return redirect("librarian")
+
+    # Fetch items that are not in any private collection
+    available_items = Item.objects.filter(~Q(collections__public=False)).distinct()
 
     if request.method == 'POST':
         collection_form = CollectionForm(request.POST)
@@ -746,6 +802,11 @@ def create_collection_patron(request):
 
             collection.save()
 
+            # Add selected items to the collection
+            item_ids = request.POST.getlist('items')  # Get selected item IDs from the form
+            selected_items = Item.objects.filter(id__in=item_ids)
+            collection.items.add(*selected_items)
+
             return redirect("collections")
         else:
             messages.error(request, "There was an error creating the collection. Please check the form and try again.")
@@ -755,6 +816,7 @@ def create_collection_patron(request):
 
     context = {
         'collection_form': collection_form,
+        'available_items': available_items,  # Pass available items to the template
     }
     return render(request, 'music/create_collection_patron.html', context)
 
@@ -792,9 +854,12 @@ def edit_collection_patron(request, title, collection_id):
     if not request.user.is_authenticated:
         return redirect(reverse("login"))
     elif user_type != "Patron":
-        return redirect("patron")
+        return redirect("librarian")
 
     collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
+
+    # Fetch items that are not in any private collections
+    available_items = Item.objects.filter(~Q(collections__public=False)).distinct()
 
     collection_form = CollectionForm(instance=collection)
 
@@ -809,6 +874,12 @@ def edit_collection_patron(request, title, collection_id):
                 else:
                     collection.public = True  # Forces the collection to be public
                     collection_form.save()
+
+                    # Update items in the collection
+                    item_ids = request.POST.getlist('items')  # Get selected item IDs from the form
+                    selected_items = Item.objects.filter(id__in=item_ids)
+                    collection.items.set(selected_items)  # Replace existing items with selected ones
+
                     return redirect('manage_collections_patron')
             else:
                 messages.error(request, "There was an error updating the collection. Please check the form.")
@@ -816,9 +887,9 @@ def edit_collection_patron(request, title, collection_id):
     context = {
         'collection_form': collection_form,
         'collection': collection,
+        'available_items': available_items,
     }
     return render(request, 'music/edit_collection_patron.html', context)
-
 
 @login_required
 def delete_collection_patron(request, title, collection_id):
@@ -834,7 +905,7 @@ def delete_collection_patron(request, title, collection_id):
     if not request.user.is_authenticated:
         return redirect(reverse("login"))
     elif user_type != "Patron":
-        return redirect("patron")
+        return redirect("librarian")
 
     original_title = title.replace('-', ' ')
     collection = get_object_or_404(Collection, title=collection_title, creator=curr_patron)
@@ -882,6 +953,8 @@ def incoming_requests(request):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
     if user_type != "Librarian":
         return redirect("patron")
 
@@ -901,6 +974,8 @@ def approve_request(request, borrow_request_id, user_id):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
     if user_type != "Librarian":
         return redirect("patron")
 
@@ -940,6 +1015,8 @@ def deny_request(request, borrow_request_id, user_id):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
     if user_type != "Librarian":
         return redirect("patron")
 
@@ -972,3 +1049,22 @@ def outgoing_requests(request):
         "outgoing_list": outgoing_list,
         "user_type": user_type,
     })
+
+@login_required
+def saved_items_view(request):
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    if user_type == 'Patron':
+        patron = Patron.objects.filter(user=curr_user).first()
+        saved_items = patron.saved_items.all() if patron else []
+    elif user_type == 'Librarian':
+        librarian = Librarian.objects.filter(user=curr_user).first()
+        saved_items = librarian.saved_items.all() if librarian else []
+    else:
+        saved_items = []
+
+    for item in saved_items:
+        item.image_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME')) if item.image else None
+
+    return render(request, 'music/saved_items.html', {'saved_items': saved_items, 'user_type': user_type})

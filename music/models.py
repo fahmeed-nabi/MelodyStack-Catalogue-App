@@ -75,7 +75,7 @@ class Patron(models.Model):
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     date_joined = models.DateTimeField('date_joined')
 
-    saved_items = models.ManyToManyField(Item, related_name='saved_items', blank=True)
+    saved_items = models.ManyToManyField(Item, related_name='patron_saved_items', blank=True)
     borrowed_items = models.ManyToManyField(Item, related_name='borrowed_items', blank=True)
     ratings_by = models.ManyToManyField('Rating', related_name='ratings_by', blank=True)
     comments_by = models.ManyToManyField('Comment', related_name='comments_by', blank=True)
@@ -138,7 +138,13 @@ class Collection(models.Model):
 
     # Delete all items associated with this collection
     def delete(self, *args, **kwargs):
-        self.items.all().delete()
+        for item in self.items.all():
+            item.collections.remove(self)
+
+            # If the item no longer belongs to any collections, clear its collections field
+            if item.collections.count() == 0:
+                item.collections.clear()
+
         super().delete(*args, **kwargs)
 
     def __str__(self):
@@ -175,6 +181,7 @@ class Librarian(models.Model):
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
+    saved_items = models.ManyToManyField(Item, related_name='librarian_saved_items', blank=True)
     date_joined = models.DateTimeField('date_joined')
 
     # Optional info
