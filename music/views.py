@@ -852,8 +852,6 @@ def edit_collection_patron(request, title, collection_id):
     }
     return render(request, 'music/edit_collection_patron.html', context)
 
-
-
 @login_required
 def delete_collection_patron(request, title, collection_id):
     """

@@ -45,14 +45,12 @@
           <div class="d-grid gap-3 col-6 mx-auto">
             <a href="{% url 'collections' %}" class="btn btn-outline-primary">📚 View Collections</a>
             <a href="{% url 'librarian_settings' %}" class="btn btn-outline-secondary">⚙️ Settings</a>
-            <!-- Add Collection or Item Button -->
             <a href="{% url 'create_collection_item' %}" class="btn btn-success">➕ Add Collection or Item</a>
-            <!-- New Manage Collections Button -->
             <a href="{% url 'manage_collections' %}" class="btn btn-primary">📋 Manage Collections</a>
             <a href="{% url 'incoming_requests' %}" class="btn btn-info active text-white">🔔 Incoming Requests</a>
             <a href="{% url 'outgoing_requests' %}" class="btn btn-dark">➡️ Outgoing Requests</a>
-            <!-- Saved Items Button -->
             <a href={% url 'saved_items' %} class="btn btn-warning">⭐ Saved Items</a>
+            <a href="{% url 'promote_patron' %}" class="btn btn-secondary">⬆️ Promote Patrons</a>
             <a href="{% url 'logout_view' %}" class="btn btn-danger">🚪 Logout</a>
           </div>
         </div>
