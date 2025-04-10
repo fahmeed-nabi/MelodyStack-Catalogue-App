@@ -32,7 +32,7 @@
         }
         .nav-tab {
             padding: 10px 24px; /* Increased horizontal padding */
-            margin: 0 100px;     /* More margin between buttons */
+            margin: 0 50px;
             color: white;
             background-color: transparent;
             border-radius: 8px;
@@ -170,8 +170,8 @@
         <div class="d-flex align-items-center">
             <nav class="nav gap-3">
                 <a class="nav-link nav-tab {% if request.resolver_match.url_name == 'collections' %}active-tab{% endif %}" href="{% url 'collections' %}">Collections</a>
-                <a class="nav-link nav-tab {% if request.path == '/help/' %}active-tab{% endif %}" href="#">Help</a>
-                <a class="nav-link nav-tab {% if request.path == '/about/' %}active-tab{% endif %}" href="#">About</a>
+                <a class="nav-link nav-tab {% if request.path == '/help/' %}active-tab{% endif %}" href="{% url 'help' %}">Help</a>
+                <a class="nav-link nav-tab {% if request.path == '/about/' %}active-tab{% endif %}" href="{% url 'about' %}">About</a>
                 <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="#">My Items</a>
             </nav>
         </div>

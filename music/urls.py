@@ -5,6 +5,7 @@ import music.views.collection_views as cv
 import music.views.item_views as item_views
 import music.views.patron_views as pv
 import music.views.librarian_views as lv
+import music.views.misc_views as misc_views
 
 # Authentication URLs
 auth_urls = [
@@ -64,5 +65,11 @@ patron_urls = [
     path('patron/outgoing_requests', lv.outgoing_requests, name='outgoing_requests'),
 ]
 
-urlpatterns = auth_urls + item_urls + collection_urls + item_urls + librarian_urls + patron_urls
+# Other URLs
+misc_urls = [
+    path('help', misc_views.help_page, name='help'),
+    path('about', misc_views.about_page, name='about'),
+             ]
+
+urlpatterns = auth_urls + item_urls + collection_urls + item_urls + librarian_urls + patron_urls + misc_urls
 
