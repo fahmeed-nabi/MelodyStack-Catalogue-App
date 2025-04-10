@@ -27,7 +27,7 @@ class CollectionForm(forms.ModelForm):
 class ItemForm(forms.ModelForm):
     class Meta:
         model = Item
-        fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
+        fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags', 'genre']
 
     def clean_collections(self):
         collections = self.cleaned_data.get('collections')
@@ -57,3 +57,6 @@ class FilterForm(forms.Form):
         ],
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+    genre = forms.CharField(label="Genre", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    tags = forms.CharField(label="Tags", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+

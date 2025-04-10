@@ -91,7 +91,7 @@ class ItemDetailView(DetailView):
 
 class ItemEditView(UpdateView):
     model = Item
-    fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
+    fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags', 'genre']
     template_name = "music/item_edit.html"
     context_object_name = "item"
 
@@ -150,6 +150,7 @@ class ItemEditView(UpdateView):
         item = self.object
         context['current_title_remaining'] = 100 - len(item.title) if item.title else 0
         context['current_description_remaining'] = 500 - len(item.description) if item.description else 0
+        context['current_genre_remaining'] = 50 - len(item.genre) if item.genre else 50
 
         return context
 

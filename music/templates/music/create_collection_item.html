@@ -169,6 +169,11 @@
                             100 characters remaining
                         </div>
                     </div>
+                    <div class="mb-3">
+                        <label for="item-genre">Genre:</label>
+                        <input type="text" id="item-genre" name="genre" class="form-control" maxlength="100"
+                               value="{{ item_form.genre.value|default:'' }}">
+                    </div>
 
                     <div class="mb-3">
                         <label for="item-description">Description:</label>
