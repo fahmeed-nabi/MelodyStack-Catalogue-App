@@ -80,7 +80,7 @@
 </head>
 <body>
     <header class="header d-flex justify-content-between align-items-center shadow-sm">
-        <a href="{% url 'collections' %}" class="btn btn-light btn-custom">Back to Collections</a>
+        <a href="{% url 'collections' %}" class="btn btn-light btn-custom">← Back to Collections</a>
         <a href="{% url 'librarian' %}" class="btn btn-light btn-custom">Go to Dashboard</a>
     </header>
 
@@ -172,7 +172,7 @@
                     <div class="mb-3">
                         <label for="item-genre">Genre:</label>
                         <input type="text" id="item-genre" name="genre" class="form-control" maxlength="100"
-                               value="{{ item_form.genre.value|default:'' }}">
+                           value="{{ item_form.genre.value|default:'None' }}">
                     </div>
 
                     <div class="mb-3">

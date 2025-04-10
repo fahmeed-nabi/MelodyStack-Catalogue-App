@@ -30,6 +30,28 @@
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+        .nav-tab {
+            padding: 10px 24px; /* Increased horizontal padding */
+            margin: 0 100px;     /* More margin between buttons */
+            color: white;
+            background-color: transparent;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .nav-tab:hover {
+            background-color: #34495e;
+            color: white;
+        }
+        .nav {
+            margin-right: 350px;
+        }
+        .active-tab {
+            background-color: white;
+            color: #2c3e50;
+            font-weight: bold;
+        }
         .sidebar a {
             display: block;
             color: #2c3e50;
@@ -136,7 +158,7 @@
 </head>
 <body>
     {% load socialaccount %}
-     <header class="header d-flex justify-content-between align-items-center shadow-sm py-3 px-4">
+    <header class="header d-flex justify-content-between align-items-center flex-wrap shadow-sm py-3 px-4">
         <h2 class="m-0 fw-bold text-white d-flex align-items-center">
             <!-- Redirect based on user_type -->
             <a href="{% if user_type == 'Librarian' %}/music/librarian/
@@ -144,6 +166,15 @@
                      {% else %}/music/login/
                      {% endif %}" class="header-title fs-2 text-decoration-none">Music Media Storefront</a>
         </h2>
+
+        <div class="d-flex align-items-center">
+            <nav class="nav gap-3">
+                <a class="nav-link nav-tab {% if request.resolver_match.url_name == 'collections' %}active-tab{% endif %}" href="{% url 'collections' %}">Collections</a>
+                <a class="nav-link nav-tab {% if request.path == '/help/' %}active-tab{% endif %}" href="#">Help</a>
+                <a class="nav-link nav-tab {% if request.path == '/about/' %}active-tab{% endif %}" href="#">About</a>
+                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="#">My Items</a>
+            </nav>
+        </div>
 
         <!-- Log Out or Login button -->
         {% if user_type == "Librarian" or user_type == "Patron" %}

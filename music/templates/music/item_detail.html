@@ -136,7 +136,7 @@
 
                 <!-- Buttons -->
                 <div class="d-flex justify-content-between mt-3">
-                    <a href="{% url 'collections' %}" class="btn btn-primary btn-custom">Back to Collection</a>
+                    <a href="{% url 'collections' %}" class="btn btn-primary btn-custom">← Back to Collection</a>
 
                     {% if user_type == 'Librarian' or user_type == 'Patron' %}
                         <form method="POST" action="{% url 'borrow_redirect' item.pk %}">
