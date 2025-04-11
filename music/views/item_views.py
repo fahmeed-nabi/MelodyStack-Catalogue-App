@@ -30,6 +30,7 @@ class ItemDetailView(DetailView):
         already_saved = False
         rating_form = RatingForm()
         user_rating = None
+        context['rating_choices'] = range(1, 6)
 
         if user_type == 'Patron':
             patron = Patron.objects.filter(user=curr_user).first()
@@ -83,17 +84,17 @@ class ItemDetailView(DetailView):
                 messages.error(request, "You must be logged in as a Patron to rate.")
                 return redirect('item_detail', pk=item.pk)
 
-            form = RatingForm(request.POST)
-            if form.is_valid():
+            score = request.POST.get("score")
+            if score and score.isdigit() and 1 <= int(score) <= 5:
                 patron = Patron.objects.get(user=curr_user)
-                rating, created = Rating.objects.update_or_create(
+                rating, _ = Rating.objects.update_or_create(
                     item=item,
                     patron=patron,
-                    defaults={'score': form.cleaned_data['score']}
+                    defaults={'score': int(score)}
                 )
                 patron.ratings_by.add(rating)
 
-                # Update average rating on the Item
+                # Update average
                 ratings = Rating.objects.filter(item=item)
                 avg = round(sum(r.score for r in ratings) / len(ratings), 2)
                 item.average_rating = avg
@@ -101,7 +102,7 @@ class ItemDetailView(DetailView):
 
                 messages.success(request, "Rating submitted.")
             else:
-                messages.error(request, "Error submitting rating.")
+                messages.error(request, "Invalid rating.")
 
             return redirect('item_detail', pk=item.pk)
 
