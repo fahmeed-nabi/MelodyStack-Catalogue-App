@@ -131,8 +131,50 @@
                 <p><strong>Genre:</strong> {{ item.genre }}</p>
                 <p><strong>Description:</strong> {{ item.description }}</p>
                 <p><strong>Owner:</strong> {{ item.owner.first_name }}</p>
+                <p><strong>Rating:</strong> {{ item.average_rating }}</p>
+                <h4>Rate This Item</h4>
+
+                    {% if user_type == 'Patron' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ rating_form.as_p }}
+                        <button type="submit" name="rating_submit" class="btn btn-primary btn-sm mt-2">Submit Rating</button>
+                    </form>
+                    {% if user_rating %}
+                        <p class="text-muted mt-1">Your current rating: {{ user_rating.score }} ★</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted">Login as a Patron to rate this item.</p>
+                    {% endif %}
+
                 <p><strong>Status:</strong> {{ item.get_status_display }}</p>
                 <p><strong>Location:</strong> {{ item.location }}</p>
+
+                <hr>
+                <div className="comments_view">
+                    <h4>Comments (must be a patron)</h4>
+    
+                    {% if user_type == 'Patron' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ comment_form.as_p }}
+                        <button type="submit" name="comment_submit" class="btn btn-primary btn-sm mt-2">Post Comment</button>
+                    </form>
+                    {% endif %}
+
+                    <hr/>
+    
+                    {% for comment in comments %}
+                    <div class="card my-2">
+                        <div class="card-body">
+                            <p class="mb-1">{{ comment.text }}</p>
+                            <small class="text-muted">— {{ comment.patron.name }} on {{ comment.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No comments yet. Be the first to comment!</p>
+                    {% endfor %}
+                </div>
 
                 <!-- Buttons -->
                 <div class="d-flex justify-content-between mt-3">

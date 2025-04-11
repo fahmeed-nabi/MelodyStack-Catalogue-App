@@ -1,5 +1,5 @@
 from django import forms
-from .models import Patron, Librarian, Collection, Item
+from .models import Patron, Librarian, Collection, Item, Comment, Rating
 
 class SettingsForm(forms.ModelForm):
     class Meta:
@@ -60,3 +60,22 @@ class FilterForm(forms.Form):
     genre = forms.CharField(label="Genre", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     tags = forms.CharField(label="Tags", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Write a comment...'
+            }),
+        }
+
+class RatingForm(forms.ModelForm):
+    class Meta:
+        model = Rating
+        fields = ['score']
+        widgets = {
+            'score': forms.RadioSelect(choices=[(i, f'{i} ★') for i in range(1, 6)])
+        }

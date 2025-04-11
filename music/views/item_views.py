@@ -7,7 +7,8 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, DeleteView, UpdateView
 
 from music import aws
-from music.models import Librarian, Patron, Item, BorrowRequest, BorrowRequester
+from music.models import Librarian, Patron, Item, BorrowRequest, BorrowRequester, Rating
+from music.forms import CommentForm, RatingForm
 from music.utils import get_user_type
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
@@ -21,43 +22,93 @@ class ItemDetailView(DetailView):
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         curr_user = self.request.user
+        item = self.get_object()
         user_type = get_user_type(curr_user)
 
-        context = super().get_context_data(**kwargs)
-        item = self.get_object()
-
-        # Check if the current user has already saved this item
         already_saved = False
-        if user_type == "Patron":
+        rating_form = RatingForm()
+        user_rating = None
+
+        if user_type == 'Patron':
             patron = Patron.objects.filter(user=curr_user).first()
-            if patron and item in patron.saved_items.all():
-                already_saved = True
-        elif user_type == "Librarian":
-            librarian = Librarian.objects.filter(user=curr_user).first()
-            if librarian and item in librarian.saved_items.all():
-                already_saved = True
+            if patron:
+                already_saved = item in patron.saved_items.all()
+                user_rating = Rating.objects.filter(item=item, patron=patron).first()
+                if user_rating:
+                    rating_form = RatingForm(instance=user_rating)
+
+        comments = item.comments.order_by('-created_at')
 
         context.update({
             'file_url': aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME')) if item.image else None,
             'user_type': user_type,
             'already_saved': already_saved,
+            'comment_form': CommentForm(),
+            'comments': comments,
+            'rating_form': rating_form,
+            'user_rating': user_rating,
         })
-
         return context
 
     def post(self, request, *args, **kwargs):
-        """
-        Handles saving and unsaving an item for both Patrons and Librarians.
-        """
         item = self.get_object()
         curr_user = request.user
         user_type = get_user_type(curr_user)
 
+        #update comments if applicable
+        if 'comment_submit' in request.POST:
+            # Handle comment submission
+            if not curr_user.is_authenticated or user_type != 'Patron':
+                messages.error(request, "You must be logged in as a Patron to comment.")
+                return redirect('item_detail', pk=item.pk)
+
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                patron = Patron.objects.get(user=curr_user)
+                comment = form.save(commit=False)
+                comment.item = item
+                comment.patron = patron
+                comment.save()
+                patron.comments_by.add(comment)
+                messages.success(request, "Comment posted.")
+            else:
+                messages.error(request, "There was an error with your comment.")
+            return redirect('item_detail', pk=item.pk)
+        
+        #update rating if applicable
+        if 'rating_submit' in request.POST:
+            if not curr_user.is_authenticated or user_type != 'Patron':
+                messages.error(request, "You must be logged in as a Patron to rate.")
+                return redirect('item_detail', pk=item.pk)
+
+            form = RatingForm(request.POST)
+            if form.is_valid():
+                patron = Patron.objects.get(user=curr_user)
+                rating, created = Rating.objects.update_or_create(
+                    item=item,
+                    patron=patron,
+                    defaults={'score': form.cleaned_data['score']}
+                )
+                patron.ratings_by.add(rating)
+
+                # Update average rating on the Item
+                ratings = Rating.objects.filter(item=item)
+                avg = round(sum(r.score for r in ratings) / len(ratings), 2)
+                item.average_rating = avg
+                item.save()
+
+                messages.success(request, "Rating submitted.")
+            else:
+                messages.error(request, "Error submitting rating.")
+
+            return redirect('item_detail', pk=item.pk)
+
+        # Default: handle save/unsave logic
         if not curr_user.is_authenticated:
             return JsonResponse({'message': 'You must be logged in to save items.'}, status=403)
 
-        # Toggle the saved state based on user type
         if user_type == "Patron":
             patron = Patron.objects.filter(user=curr_user).first()
             if patron:
@@ -83,7 +134,6 @@ class ItemDetailView(DetailView):
                 librarian.save()
             else:
                 return JsonResponse({'message': 'Error: Librarian not found.'}, status=404)
-
         else:
             return JsonResponse({'message': 'Invalid user type.'}, status=400)
 

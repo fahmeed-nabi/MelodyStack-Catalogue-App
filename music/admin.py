@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Item, Patron, Librarian, Collection, BorrowRequest, BorrowRequester
+from .models import Item, Patron, Librarian, Collection, BorrowRequest, BorrowRequester, Comment
 
 # Register your models here.
 class PatronAdmin(admin.ModelAdmin):
@@ -16,6 +16,11 @@ class BorrowRequestAdmin(admin.ModelAdmin):
 
 class BorrowRequesterAdmin(admin.ModelAdmin):
     fields = ["request_user", "status", "associated_request"]
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ('item', 'patron', 'created_at', 'thumbs_up')
+    search_fields = ('text',)
     
 
 admin.site.register(Item)
