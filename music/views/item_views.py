@@ -7,7 +7,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, DeleteView, UpdateView
 
 from music import aws
-from music.models import Librarian, Patron, Item, BorrowRequest, BorrowRequester
+from music.models import Librarian, Patron, Item, BorrowRequest
 from music.utils import get_user_type
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
@@ -38,10 +38,31 @@ class ItemDetailView(DetailView):
             if librarian and item in librarian.saved_items.all():
                 already_saved = True
 
+        # Check if the current user has already requested this item
+        already_requested = False
+        denied = False
+
+        if user_type in ["Patron", "Librarian"]:  # Only check if user is valid
+            pending_requests = BorrowRequest.objects.filter(
+                requested_item=item,
+                requester=curr_user,
+                status="PENDING"
+            )
+            denied_requests = BorrowRequest.objects.filter(
+                requested_item=item,
+                requester=curr_user,
+                status="DENIED"
+            )
+
+            already_requested = pending_requests.exists()
+            denied = denied_requests.exists()
+
         context.update({
             'file_url': aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME')) if item.image else None,
             'user_type': user_type,
             'already_saved': already_saved,
+            'already_requested': already_requested,
+            'denied': denied,
         })
 
         return context
@@ -57,7 +78,6 @@ class ItemDetailView(DetailView):
         if not curr_user.is_authenticated:
             return JsonResponse({'message': 'You must be logged in to save items.'}, status=403)
 
-        # Toggle the saved state based on user type
         if user_type == "Patron":
             patron = Patron.objects.filter(user=curr_user).first()
             if patron:
@@ -88,6 +108,7 @@ class ItemDetailView(DetailView):
             return JsonResponse({'message': 'Invalid user type.'}, status=400)
 
         return JsonResponse({'message': message})
+
 
 class ItemEditView(UpdateView):
     model = Item
@@ -201,25 +222,16 @@ def borrow_redir(request, pk):
     Handles borrowing requests by adding the user to the requesters list.
     """
     item = get_object_or_404(Item, pk=pk)
-    owner = item.owner
     requester = request.user  # Use Django's built-in user system
 
-    if owner == requester:
-        messages.error(request, "ERROR: Cannot request your own item!")
-        return redirect("item_detail", pk=pk)
-
     # Get or create a borrow request for this item
-    borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=owner)
-    borrow_requester, created = BorrowRequester.objects.get_or_create(request_user=requester, associated_request=borrow_request)
+    borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, requester=requester)
 
-    if requester in borrow_request.requesters.all():
+    if not created:
         messages.error(request, "ERROR: You have already requested this item! Please wait to be approved.")
         return redirect("item_detail", pk=pk)
 
-    # Add the user to requesters list
-    borrow_request.requesters.add(borrow_requester)
     borrow_request.save()
-    borrow_requester.save()
     messages.success(request, "Success! Your request has been sent.")
     return redirect("item_detail", pk=pk)
 

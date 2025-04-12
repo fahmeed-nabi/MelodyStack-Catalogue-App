@@ -211,20 +211,17 @@ class Librarian(models.Model):
 
         super().save(*args, **kwargs)
 
-class BorrowRequest(models.Model):
-    requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
-    item_owner = models.ForeignKey(User, related_name="item_owner", on_delete=models.CASCADE)
-    requesters = models.ManyToManyField('BorrowRequester', related_name="requesters", blank=True)
 
-class BorrowRequester(models.Model):
+class BorrowRequest(models.Model):
     STATUS_CHOICES = [
-        ('APPROVED', 'Approved'),
         ('PENDING', 'Pending'),
-        ('DENIED', 'Denied')
+        ('APPROVED', 'Approved'),
+        ('DENIED', 'Denied'),
+        ('OVERDUE', 'Overdue')
     ]
 
-    request_user = models.ForeignKey(User, related_name="request_user", on_delete=models.CASCADE)
+    requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
+    requester = models.ForeignKey(User, related_name="requester", on_delete=models.CASCADE, blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='PENDING'
     )
-    associated_request = models.ForeignKey(BorrowRequest, related_name="associated_request", on_delete=models.CASCADE)

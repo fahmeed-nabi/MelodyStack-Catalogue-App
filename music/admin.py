@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Item, Patron, Librarian, Collection, BorrowRequest, BorrowRequester
+from .models import Item, Patron, Librarian, Collection, BorrowRequest
 
 # Register your models here.
 class PatronAdmin(admin.ModelAdmin):
@@ -12,16 +12,11 @@ class CollectionAdmin(admin.ModelAdmin):
     fields = ["title", "description", "public", "private_users"]
 
 class BorrowRequestAdmin(admin.ModelAdmin):
-    fields = ["requested_item", "item_owner", "requesters"]
+    fields = ["requested_item", "status", "requester"]
 
-class BorrowRequesterAdmin(admin.ModelAdmin):
-    fields = ["request_user", "status", "associated_request"]
-    
 
 admin.site.register(Item)
 admin.site.register(Collection, CollectionAdmin)
 admin.site.register(Librarian, LibrarianAdmin)
 admin.site.register(Patron, PatronAdmin)
 admin.site.register(BorrowRequest, BorrowRequestAdmin)
-admin.site.register(BorrowRequester, BorrowRequesterAdmin)
-

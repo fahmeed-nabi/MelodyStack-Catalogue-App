@@ -4,9 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
+
 from music import aws
 from music.forms import LibrarianSettingsForm, CollectionForm, ItemForm
-from music.models import Librarian, Patron, Collection, Item, BorrowRequest, BorrowRequester
+from music.models import Librarian, Patron, Collection, Item, BorrowRequest
 from music.utils import get_user_type
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
@@ -348,7 +350,7 @@ def incoming_requests(request):
         return redirect("patron")
 
     # Fetch all borrow requests where the user is the owner
-    incoming_list = BorrowRequest.objects.filter(item_owner=curr_user)
+    incoming_list = BorrowRequest.objects.all()
 
     return render(request, "music/incoming_borrow_requests.html", {
         "incoming_list": incoming_list,
@@ -369,31 +371,20 @@ def approve_request(request, borrow_request_id, user_id):
         return redirect("patron")
 
     borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
-    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
+    requests_to_item = BorrowRequest.objects.filter(requested_item=borrow_request.requested_item)
 
-    if borrow_requester_to_approve in borrow_request.requesters.all():
-        for u in borrow_request.requesters.all():
-            u.status = 'DENIED'
-            u.save()
-        borrow_requester_to_approve.status = 'APPROVED'
-        borrow_requester_to_approve.save()
-        item = borrow_request.requested_item
-        item.status = 'BORROWED'
-        item.save()
-        messages.success(request,
-                         f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been approved.")
+    for r in requests_to_item:
+        r.status = "DENIED"
+        r.save()
+    borrow_request.status = 'APPROVED'
+    borrow_request.save()
+    item = borrow_request.requested_item
+    item.status = 'BORROWED'
+    item.due_date = timezone.now() + timezone.timedelta(days=7)
+    item.save()
+    messages.success(request, f"Borrow request for {borrow_request.requester.first_name} has been approved.")
 
     return redirect("incoming_requests")
-
-    # if user_to_approve in borrow_request.requesters.all():
-    #     borrow_request.requesters.remove(user_to_approve)
-    #     borrow_request.status = "APPROVED"
-    #     borrow_request.save()
-    #     item = borrow_request.requested_item
-    #     item.status = 'BORROWED'
-    #     item.save()
-
-    #     messages.success(request, f"Borrow request for {user_to_approve.first_name} has been approved.")
 
 
 @login_required
@@ -410,15 +401,13 @@ def deny_request(request, borrow_request_id, user_id):
         return redirect("patron")
 
     borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
-    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
 
-    if borrow_requester_to_approve in borrow_request.requesters.all():
-        borrow_requester_to_approve.status = 'DENIED'
-        borrow_requester_to_approve.save()
-        messages.warning(request,
-                         f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been denied.")
+    borrow_request.status = 'DENIED'
+    borrow_request.save()
+    messages.warning(request, f"Borrow request for {borrow_request.requester.first_name} has been denied.")
 
     return redirect("incoming_requests")
+
 
 @login_required
 def outgoing_requests(request):
@@ -429,7 +418,11 @@ def outgoing_requests(request):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
-    outgoing_list = BorrowRequester.objects.filter(request_user=curr_user)
+    outgoing_list = BorrowRequest.objects.filter(requester=curr_user)
+    for outgoing_request in outgoing_list:
+        if (timezone.now().date() > outgoing_request.requested_item.due_date):
+            outgoing_request.status = 'OVERDUE'
+            outgoing_request.save()
 
     # Find borrow requests where the user is in the requesters list
     # outgoing_list = BorrowRequest.objects.filter(requesters=curr_user)
@@ -438,3 +431,22 @@ def outgoing_requests(request):
         "outgoing_list": outgoing_list,
         "user_type": user_type,
     })
+
+
+@login_required
+def return_redir(request, pk):
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    # On an item's return, we want to update the item to be no longer borrowed, delete all borrow requests relating to an item, and display a message saying that the item was returned successfully
+
+    borrow_request = BorrowRequest.objects.filter(pk=pk).first()
+    item = borrow_request.requested_item
+
+    item.status = 'CHECKED_IN'
+    item.save()
+
+    BorrowRequest.objects.filter(requested_item=item).delete()
+    messages.success(request, f"{borrow_request.requested_item.title} has been successfully returned")
+
+    return redirect(reverse("outgoing_requests"))
