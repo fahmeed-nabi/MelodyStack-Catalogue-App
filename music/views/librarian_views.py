@@ -411,7 +411,6 @@ def deny_request(request, borrow_request_id, user_id):
 
 @login_required
 def outgoing_requests(request):
-    print("hello")
     """
     Shows borrow requests made by the logged-in user.
     """
@@ -420,7 +419,7 @@ def outgoing_requests(request):
 
     outgoing_list = BorrowRequest.objects.filter(requester=curr_user)
     for outgoing_request in outgoing_list:
-        if (timezone.now().date() > outgoing_request.requested_item.due_date):
+        if (timezone.now().date() > outgoing_request.requested_item.due_date and outgoing_request.status == "APPROVED"):
             outgoing_request.status = 'OVERDUE'
             outgoing_request.save()
 

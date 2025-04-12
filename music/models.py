@@ -40,10 +40,8 @@ class Item(models.Model):
     genre = models.TextField(blank=True, null=True, default="None")
     average_rating = models.FloatField(default=0.0)
 
-    owner = models.ForeignKey(User, related_name="owner", on_delete=models.CASCADE, blank=True)
-
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
-    due_date = models.DateField(blank=True, null=True)
+    due_date = models.DateField(default=timezone.now)
 
     def is_accessible_by(self, user):
         """

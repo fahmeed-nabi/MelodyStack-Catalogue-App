@@ -15,6 +15,7 @@ class BorrowRequestAdmin(admin.ModelAdmin):
     fields = ["requested_item", "status", "requester"]
 
 
+
 admin.site.register(Item)
 admin.site.register(Collection, CollectionAdmin)
 admin.site.register(Librarian, LibrarianAdmin)
