@@ -16,6 +16,17 @@
             margin-bottom: 10px;
             background-color: #f8f9fa;
         }
+        .approved-container{
+            display: flex;
+            flex-direction: row;
+            align-self: flex-end;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge-title{
+            style=display: flex; 
+            align-items: center;
+        }
 
         .collection-item:hover {
             background-color: #e9ecef;
@@ -89,6 +100,14 @@
 
         <h1 class="text-center text-uppercase fw-light text-dark mb-4">Manage Outgoing Requests</h1>
 
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %} alert-danger {% elif message.tags == 'success' %} alert-success {% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
         <!-- Search Bar and All Private Collection Requests button -->
         <div class="search-bar-container">
             <input type="text" id="searchBar" class="form-control search-bar" placeholder="Search requests..." />
@@ -98,13 +117,36 @@
             <div id="collectionsList">
                 {% for outgoing_request in outgoing_list %}
                     <div class="collection-item">
-                        {% if outgoing_request.status == 'APPROVED' %} <span class="badge bg-success">Approved</span>
-                        {% elif outgoing_request.status == 'PENDING' %} <span class="badge bg-warning">Pending</span>
-                        {% elif outgoing_request.status == 'DENIED' %} <span class="badge bg-danger">Denied</span>
-                        {% endif %}
+                        <div class="badge-title">
+                            {% if outgoing_request.status == 'APPROVED' %} <span class="badge bg-success">Approved</span>
+                            {% elif outgoing_request.status == 'PENDING' %} <span class="badge bg-warning">Pending</span>
+                            {% elif outgoing_request.status == 'DENIED' %} <span class="badge bg-dark">Denied</span>
+                            {% elif outgoing_request.status == 'OVERDUE' %} <span class="badge bg-danger">Overdue</span>
+                            {% endif %}
+                            <span style="margin-left: 10px;" class="collection-title">Title: {{ outgoing_request.requested_item.title }}</span>
+                        </div>
+
+                        <div style="flex-grow: 1;">
+                            
+                        </div>
+        
 
                         <!-- Collection Title -->
-                        <span class="collection-title">{{ outgoing_request.associated_request.requested_item.title }} - Requesting item from {{ outgoing_request.associated_request.item_owner.first_name }}</span>
+                        {% if outgoing_request.status == 'APPROVED' or outgoing_request.status == 'OVERDUE' %} 
+                            <div class="approved-container">
+                                <div>
+                                </div>
+                                <div>
+                                    <span>Due Date: {{ outgoing_request.requested_item.due_date }}</span>
+                                </div>
+                                <div class="action-buttons">
+                                    <a href="{% url 'return_redirect' outgoing_request.id %}" class="btn btn-danger btn-sm">Return</a>
+                                </div>
+
+                            </div>
+                        {% else %}
+                        <span class="collection-title">{{ outgoing_request.requested_item.title }}</span>
+                        {% endif %}
 
                         <!-- Action Buttons -->
                         <div class="action-buttons">
