@@ -7,13 +7,13 @@ from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.views import generic
 from django.contrib.auth import get_user, logout, get_user_model
-from django.utils import timezone
+from django.utils import timezone 
 from django.views.generic import ListView, DetailView, UpdateView, DeleteView
 
 User = get_user_model()
 
 from . import aws
-from .models import Item, Librarian, Patron, Collection, BorrowRequest, BorrowRequester
+from .models import Item, Librarian, Patron, Collection, BorrowRequest
 from .forms import SettingsForm, LibrarianSettingsForm, CollectionForm, ItemForm, FilterForm
 from .utils import get_user_type, get_accessible_collections
 from mysite.settings import os.environ.get('BUCKET_NAME')
@@ -221,10 +221,24 @@ class ItemDetailView(DetailView):
             if librarian and item in librarian.saved_items.all():
                 already_saved = True
 
+        # Check if the current user has already requested this item
+        already_requested = False
+        curr_user_pending_borrow_requests = BorrowRequest.objects.filter(requested_item=item, requester=curr_user, status="PENDING")
+        if(curr_user_pending_borrow_requests.exists()):
+            already_requested = True
+        
+        denied = False
+        curr_user_denied_borrow_requests = BorrowRequest.objects.filter(requested_item=item, requester=curr_user, status='DENIED')
+        if(curr_user_denied_borrow_requests.exists()):
+            denied = True
+        
+
         context.update({
             'file_url': aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME')) if item.image else None,
             'user_type': user_type,
             'already_saved': already_saved,
+            'already_requested': already_requested,
+            'denied': denied
         })
 
         return context
@@ -498,11 +512,7 @@ def create_collection_item(request):
                 elif num_private_collections > 1:
                     messages.error(request, "Item cannot be in more than one private collection.")
                 else:
-                    new_item = item_form.save(commit=False)
-                    new_item.owner = curr_user
-                    new_item.save()
-                    new_item.collections.set(item_form.cleaned_data['collections'])
-                    new_item.save()
+                    item_form.save()
                     return redirect('collections')
             else:
                 messages.error(request, "Failed to create the item. Please upload an image in .jpg, .jpeg, or .png format.")
@@ -922,25 +932,16 @@ def borrow_redir(request, pk):
     Handles borrowing requests by adding the user to the requesters list.
     """
     item = get_object_or_404(Item, pk=pk)
-    owner = item.owner
     requester = request.user  # Use Django's built-in user system
 
-    if owner == requester:
-        messages.error(request, "ERROR: Cannot request your own item!")
-        return redirect("item_detail", pk=pk)
-
     # Get or create a borrow request for this item
-    borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, item_owner=owner)
-    borrow_requester, created = BorrowRequester.objects.get_or_create(request_user=requester, associated_request=borrow_request)
+    borrow_request, created = BorrowRequest.objects.get_or_create(requested_item=item, requester=requester)
 
-    if requester in borrow_request.requesters.all():
+    if not created:
         messages.error(request, "ERROR: You have already requested this item! Please wait to be approved.")
         return redirect("item_detail", pk=pk)
 
-    # Add the user to requesters list
-    borrow_request.requesters.add(borrow_requester)
     borrow_request.save()
-    borrow_requester.save()
     messages.success(request, "Success! Your request has been sent.")
     return redirect("item_detail", pk=pk)
 
@@ -959,7 +960,7 @@ def incoming_requests(request):
         return redirect("patron")
 
     # Fetch all borrow requests where the user is the owner
-    incoming_list = BorrowRequest.objects.filter(item_owner=curr_user)
+    incoming_list = BorrowRequest.objects.all()
 
     return render(request, "music/incoming_borrow_requests.html", {
         "incoming_list": incoming_list,
@@ -980,32 +981,21 @@ def approve_request(request, borrow_request_id, user_id):
         return redirect("patron")
 
     borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
-    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
+    requests_to_item = BorrowRequest.objects.filter(requested_item=borrow_request.requested_item)
 
-    if borrow_requester_to_approve in borrow_request.requesters.all():
-        for u in borrow_request.requesters.all():
-            u.status = 'DENIED'
-            u.save()
-        borrow_requester_to_approve.status = 'APPROVED'
-        borrow_requester_to_approve.save()
-        item = borrow_request.requested_item
-        item.status = 'BORROWED'
-        item.save()
-        messages.success(request, f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been approved.")
+    for r in requests_to_item:
+        r.status = "DENIED"
+        r.save()
+    borrow_request.status = 'APPROVED'
+    borrow_request.save()
+    item = borrow_request.requested_item
+    item.status = 'BORROWED'
+    item.due_date = timezone.now() + timezone.timedelta(days=7) 
+    item.save()
+    messages.success(request, f"Borrow request for {borrow_request.requester.first_name} has been approved.")
 
     return redirect("incoming_requests")
 
-    # if user_to_approve in borrow_request.requesters.all():
-    #     borrow_request.requesters.remove(user_to_approve)
-    #     borrow_request.status = "APPROVED"
-    #     borrow_request.save()
-    #     item = borrow_request.requested_item
-    #     item.status = 'BORROWED'
-    #     item.save()
-
-    #     messages.success(request, f"Borrow request for {user_to_approve.first_name} has been approved.")
-
-    
 
 @login_required
 def deny_request(request, borrow_request_id, user_id):
@@ -1021,12 +1011,11 @@ def deny_request(request, borrow_request_id, user_id):
         return redirect("patron")
 
     borrow_request = get_object_or_404(BorrowRequest, pk=borrow_request_id)
-    borrow_requester_to_approve = get_object_or_404(BorrowRequester, pk=user_id)
 
-    if borrow_requester_to_approve in borrow_request.requesters.all():
-        borrow_requester_to_approve.status = 'DENIED'
-        borrow_requester_to_approve.save()
-        messages.warning(request, f"Borrow request for {borrow_requester_to_approve.request_user.first_name} has been denied.")
+    
+    borrow_request.status = 'DENIED'
+    borrow_request.save()
+    messages.warning(request, f"Borrow request for {borrow_request.requester.first_name} has been denied.")
 
     return redirect("incoming_requests")
 
@@ -1040,7 +1029,11 @@ def outgoing_requests(request):
     curr_user = request.user
     user_type = get_user_type(curr_user)
 
-    outgoing_list = BorrowRequester.objects.filter(request_user=curr_user)
+    outgoing_list = BorrowRequest.objects.filter(requester=curr_user)
+    for outgoing_request in outgoing_list:
+        if(timezone.now().date() > outgoing_request.requested_item.due_date):
+            outgoing_request.status = 'OVERDUE'
+            outgoing_request.save()
 
     # Find borrow requests where the user is in the requesters list
     # outgoing_list = BorrowRequest.objects.filter(requesters=curr_user)
@@ -1068,3 +1061,22 @@ def saved_items_view(request):
         item.image_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME')) if item.image else None
 
     return render(request, 'music/saved_items.html', {'saved_items': saved_items, 'user_type': user_type})
+
+
+@login_required
+def return_redir(request, pk):
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    # On an item's return, we want to update the item to be no longer borrowed, delete all borrow requests relating to an item, and display a message saying that the item was returned successfully
+    
+    borrow_request = BorrowRequest.objects.filter(pk=pk).first()
+    item = borrow_request.requested_item
+
+    item.status = 'CHECKED_IN'
+    item.save()
+
+    BorrowRequest.objects.filter(requested_item=item).delete()
+    messages.success(request, f"{borrow_request.requested_item.title} has been successfully returned")
+
+    return redirect(reverse("outgoing_requests"))
