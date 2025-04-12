@@ -7,7 +7,8 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, DeleteView, UpdateView
 
 from music import aws
-from music.models import Librarian, Patron, Item, BorrowRequest
+from music.models import Librarian, Patron, Item, BorrowRequest, Rating
+from music.forms import CommentForm, RatingForm
 from music.utils import get_user_type
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
@@ -21,22 +22,25 @@ class ItemDetailView(DetailView):
         return get_object_or_404(Item, id=self.kwargs.get('pk'))
 
     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         curr_user = self.request.user
+        item = self.get_object()
         user_type = get_user_type(curr_user)
 
-        context = super().get_context_data(**kwargs)
-        item = self.get_object()
-
-        # Check if the current user has already saved this item
         already_saved = False
-        if user_type == "Patron":
+        rating_form = RatingForm()
+        user_rating = None
+        context['rating_choices'] = range(1, 6)
+
+        if user_type == 'Patron':
             patron = Patron.objects.filter(user=curr_user).first()
-            if patron and item in patron.saved_items.all():
-                already_saved = True
-        elif user_type == "Librarian":
-            librarian = Librarian.objects.filter(user=curr_user).first()
-            if librarian and item in librarian.saved_items.all():
-                already_saved = True
+            if patron:
+                already_saved = item in patron.saved_items.all()
+                user_rating = Rating.objects.filter(item=item, patron=patron).first()
+                if user_rating:
+                    rating_form = RatingForm(instance=user_rating)
+
+        comments = item.comments.order_by('-created_at')
 
         # Check if the current user has already requested this item
         already_requested = False
@@ -63,18 +67,67 @@ class ItemDetailView(DetailView):
             'already_saved': already_saved,
             'already_requested': already_requested,
             'denied': denied,
+            'comment_form': CommentForm(),
+            'comments': comments,
+            'rating_form': rating_form,
+            'user_rating': user_rating,
         })
-
         return context
 
     def post(self, request, *args, **kwargs):
-        """
-        Handles saving and unsaving an item for both Patrons and Librarians.
-        """
         item = self.get_object()
         curr_user = request.user
         user_type = get_user_type(curr_user)
 
+        #update comments if applicable
+        if 'comment_submit' in request.POST:
+            # Handle comment submission
+            if not curr_user.is_authenticated or user_type != 'Patron':
+                messages.error(request, "You must be logged in as a Patron to comment.")
+                return redirect('item_detail', pk=item.pk)
+
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                patron = Patron.objects.get(user=curr_user)
+                comment = form.save(commit=False)
+                comment.item = item
+                comment.patron = patron
+                comment.save()
+                patron.comments_by.add(comment)
+                messages.success(request, "Comment posted.")
+            else:
+                messages.error(request, "There was an error with your comment.")
+            return redirect('item_detail', pk=item.pk)
+        
+        #update rating if applicable
+        if 'rating_submit' in request.POST:
+            if not curr_user.is_authenticated or user_type != 'Patron':
+                messages.error(request, "You must be logged in as a Patron to rate.")
+                return redirect('item_detail', pk=item.pk)
+
+            score = request.POST.get("score")
+            if score and score.isdigit() and 1 <= int(score) <= 5:
+                patron = Patron.objects.get(user=curr_user)
+                rating, _ = Rating.objects.update_or_create(
+                    item=item,
+                    patron=patron,
+                    defaults={'score': int(score)}
+                )
+                patron.ratings_by.add(rating)
+
+                # Update average
+                ratings = Rating.objects.filter(item=item)
+                avg = round(sum(r.score for r in ratings) / len(ratings), 2)
+                item.average_rating = avg
+                item.save()
+
+                messages.success(request, "Rating submitted.")
+            else:
+                messages.error(request, "Invalid rating.")
+
+            return redirect('item_detail', pk=item.pk)
+
+        # Default: handle save/unsave logic
         if not curr_user.is_authenticated:
             return JsonResponse({'message': 'You must be logged in to save items.'}, status=403)
 
@@ -103,7 +156,6 @@ class ItemDetailView(DetailView):
                 librarian.save()
             else:
                 return JsonResponse({'message': 'Error: Librarian not found.'}, status=404)
-
         else:
             return JsonResponse({'message': 'Invalid user type.'}, status=400)
 
@@ -112,7 +164,7 @@ class ItemDetailView(DetailView):
 
 class ItemEditView(UpdateView):
     model = Item
-    fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags']
+    fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags', 'genre']
     template_name = "music/item_edit.html"
     context_object_name = "item"
 
@@ -171,6 +223,7 @@ class ItemEditView(UpdateView):
         item = self.object
         context['current_title_remaining'] = 100 - len(item.title) if item.title else 0
         context['current_description_remaining'] = 500 - len(item.description) if item.description else 0
+        context['current_genre_remaining'] = 50 - len(item.genre) if item.genre else 50
 
         return context
 

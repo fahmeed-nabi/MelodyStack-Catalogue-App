@@ -30,6 +30,28 @@
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+        .nav-tab {
+            padding: 10px 24px; /* Increased horizontal padding */
+            margin: 0 50px;
+            color: white;
+            background-color: transparent;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .nav-tab:hover {
+            background-color: #34495e;
+            color: white;
+        }
+        .nav {
+            margin-right: 350px;
+        }
+        .active-tab {
+            background-color: white;
+            color: #2c3e50;
+            font-weight: bold;
+        }
         .sidebar a {
             display: block;
             color: #2c3e50;
@@ -136,7 +158,7 @@
 </head>
 <body>
     {% load socialaccount %}
-     <header class="header d-flex justify-content-between align-items-center shadow-sm py-3 px-4">
+    <header class="header d-flex justify-content-between align-items-center flex-wrap shadow-sm py-3 px-4">
         <h2 class="m-0 fw-bold text-white d-flex align-items-center">
             <!-- Redirect based on user_type -->
             <a href="{% if user_type == 'Librarian' %}/music/librarian/
@@ -144,6 +166,15 @@
                      {% else %}/music/login/
                      {% endif %}" class="header-title fs-2 text-decoration-none">Music Media Storefront</a>
         </h2>
+
+        <div class="d-flex align-items-center">
+            <nav class="nav gap-3">
+                <a class="nav-link nav-tab {% if request.resolver_match.url_name == 'collections' %}active-tab{% endif %}" href="{% url 'collections' %}">Collections</a>
+                <a class="nav-link nav-tab {% if request.path == '/help/' %}active-tab{% endif %}" href="{% url 'help' %}">Help</a>
+                <a class="nav-link nav-tab {% if request.path == '/about/' %}active-tab{% endif %}" href="{% url 'about' %}">About</a>
+                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="#">My Items</a>
+            </nav>
+        </div>
 
         <!-- Log Out or Login button -->
         {% if user_type == "Librarian" or user_type == "Patron" %}
@@ -227,6 +258,19 @@
                             <input type="text" id="description" name="description" class="form-control" value="{{ request.GET.description }}">
                         </div>
 
+                    <!-- Genre Filter -->
+                    <div class="mb-3">
+                        <label for="genre" class="form-label">Genre</label>
+                        <input type="text" id="genre" name="genre" class="form-control" value="{{ request.GET.genre }}">
+                    </div>
+
+                    <!-- Tags Filter -->
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <input type="text" id="tags" name="tags" class="form-control" value="{{ request.GET.tags }}">
+                    </div>
+
+
                         <!-- Media Type Filter -->
                         <div class="mb-3">
                             <label for="mediaType" class="form-label">Media Type</label>
@@ -249,6 +293,7 @@
                                 <option value="BEING_REPAIRED" {% if request.GET.status == "BEING_REPAIRED" %}selected{% endif %}>Being Repaired</option>
                             </select>
                         </div>
+
 
                         <!-- Filter Button -->
                         <button class="btn btn-primary btn-lg w-100" type="submit">
@@ -281,7 +326,7 @@
             <!-- Main Content Display -->
             <div class="col-md-7">
                 <div class="row">
-                    {% for item in items %}
+                    {% for item in page_obj %}
                     <div class="col-md-4 mb-4">
                         <div class="card h-100">
                             <div class="status-indicator
@@ -296,8 +341,10 @@
                                      style="height: 200px; object-fit: cover;">
                                 <h5 class="card-title fw-semibold text-dark">{{ item.title }}</h5>
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }}</h6>
+                                <p class="card-text text-secondary small"><strong>Genre:</strong> {{ item.genre }}</p>
                                 <p class="card-text text-secondary small">{{ item.owner.first_name }}</p>
                                 <p class="card-text text-secondary small">{{ item.description }}</p>
+                                <p class="card-text text-secondary small"><strong>Rating:</strong> {{ item.average_rating }}</p>
                                 <p class="card-text"><small class="text-muted">Posted on {{ item.created_at|date:"F j, Y" }}</small></p>
                             </div>
                             <div class="card-footer text-center border-0">
@@ -308,6 +355,36 @@
                     {% empty %}
                     <p class="text-center text-muted fs-5 mt-4">No items available in this collection.</p>
                     {% endfor %}
+                </div>
+                <!-- Pagination Controls -->
+                <div class="d-flex justify-content-center mt-4">
+                    <nav>
+                        <ul class="pagination">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if active_collection %}collection={{ active_collection.id }}&{% endif %}page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                                        &laquo;
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% for page_num in page_obj.paginator.page_range %}
+                                <li class="page-item {% if page_obj.number == page_num %}active{% endif %}">
+                                    <a class="page-link" href="?{% if active_collection %}collection={{ active_collection.id }}&{% endif %}page={{ page_num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if active_collection %}collection={{ active_collection.id }}&{% endif %}page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                                        &raquo;
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
                 </div>
             </div>
 

@@ -2,11 +2,13 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView
+from django.core.paginator import Paginator
+from django.contrib import messages
+
 from music import aws
 from music.forms import FilterForm
 from music.models import Item, Collection, Patron
 from music.utils import get_user_type
-from django.contrib import messages
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
 class CollectionsFrontView(ListView):
@@ -15,29 +17,24 @@ class CollectionsFrontView(ListView):
 
     def get_queryset(self):
         """
-        Returns items filtered by the selected collection and attributes while ensuring
+        Returns paginated items filtered by collection and attributes, while ensuring
         that private collections are not visible to unauthorized users.
         """
         collection_id = self.request.GET.get("collection")
         curr_user = self.request.user
         user_type = get_user_type(curr_user)
 
-        # Start by fetching all items
         items = Item.objects.all()
 
         # Collection-based filtering
         if collection_id:
             collection = get_object_or_404(Collection, id=collection_id)
-
-            # Check if the user can access the collection
             if collection.public or user_type == "Librarian" or (
-                    user_type == "Patron" and collection.is_accessible_by(curr_user)
+                user_type == "Patron" and collection.is_accessible_by(curr_user)
             ):
-                items = collection.items.all()  # Limit to items in the selected collection
+                items = collection.items.all()
             else:
                 return redirect("unauthorized_collection", collection_id=collection.id)
-
-        # Exclude items in private collections that the user cannot access
         else:
             if user_type == "Patron":
                 accessible_collections = Collection.objects.filter(
@@ -46,7 +43,7 @@ class CollectionsFrontView(ListView):
                 items = items.filter(
                     Q(collections__in=accessible_collections) | Q(collections=None)
                 ).distinct()
-            elif user_type != "Librarian":  # Non-logged-in users
+            elif user_type != "Librarian":
                 items = items.filter(
                     Q(collections__public=True) | Q(collections=None)
                 ).distinct()
@@ -66,30 +63,45 @@ class CollectionsFrontView(ListView):
 
         status = self.request.GET.get("status", "").strip()
         if status:
-            items = items.filter(status=status)  # Exact match for "status"
+            items = items.filter(status=status)
 
-        # Attach file URLs for the filtered items
+        genre = self.request.GET.get("genre", "").strip()
+        if genre:
+            items = items.filter(genre__icontains=genre)
+
+        tags = self.request.GET.get("tags", "").strip()
+        if tags:
+            items = items.filter(tags__icontains=tags)
+
+        # ordered pagination
+        items = items.order_by('-created_at')
+
+        # Attach file URLs to items
         for item in items:
             if item.image:
                 item.file_url = aws.generate_url(item.image.name, os.environ.get('BUCKET_NAME'))
 
-        return items
+        # PAGINATION
+        paginator = Paginator(items, 9)  # display 9 items per page
+        page_number = self.request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+        return page_obj
 
     def get_context_data(self, **kwargs):
         """
-        Add all collections with accessibility info and other relevant context data.
+        Add all collections with accessibility info and pagination context.
         """
         context = super().get_context_data(**kwargs)
         curr_user = self.request.user
         user_type = get_user_type(curr_user)
 
-        # Annotate all collections with access information
+        # Annotate collections with access info
         all_collections = Collection.objects.all()
         for collection in all_collections:
             collection.accessible = (
-                    collection.public or
-                    user_type == 'Librarian' or
-                    (user_type == 'Patron' and collection.is_accessible_by(curr_user))
+                collection.public or
+                user_type == 'Librarian' or
+                (user_type == 'Patron' and collection.is_accessible_by(curr_user))
             )
 
         context["collections"] = all_collections
@@ -101,6 +113,8 @@ class CollectionsFrontView(ListView):
 
         context["user_type"] = user_type
         context["filter_form"] = FilterForm()
+        context["page_obj"] = context["items"]  # So templates can use pagination controls
+
         return context
 
 @login_required

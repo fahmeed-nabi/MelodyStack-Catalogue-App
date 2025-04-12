@@ -37,6 +37,7 @@ class Item(models.Model):
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    genre = models.TextField(blank=True, null=True, default="None")
     average_rating = models.FloatField(default=0.0)
 
     owner = models.ForeignKey(User, related_name="owner", on_delete=models.CASCADE, blank=True)
@@ -109,7 +110,7 @@ class Patron(models.Model):
 
 
 class Collection(models.Model):
-    title = models.CharField(max_length=100)  # Title of the collection (genre)
+    title = models.CharField(max_length=100)
     description = models.TextField(max_length=500, blank=True, null=True)  # Optional
     public = models.BooleanField(default=True)  # Whether the collection is public or private
     private_users = models.ManyToManyField(

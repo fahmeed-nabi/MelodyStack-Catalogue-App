@@ -128,14 +128,62 @@
                 </div>
 
                 <!-- Other Item Details -->
+                <p><strong>Genre:</strong> {{ item.genre }}</p>
                 <p><strong>Description:</strong> {{ item.description }}</p>
                 <p><strong>Owner:</strong> {{ item.owner.first_name }}</p>
+                <div class="d-flex align-items-center mb-3">
+                    <p class="mb-0 me-2"><strong>Rating:</strong> {{ item.average_rating }} ★</p>
+                    {% if user_rating %}
+                    <p class="text-muted ms-2 mb-0">(Your rating: {{ user_rating.score }} ★)</p>
+                    {% endif %}
+                    {% if user_type == 'Patron' %}
+                    <form method="post" class="d-flex align-items-center ms-3">
+                        {% csrf_token %}
+                        <select name="score" class="form-select form-select-sm me-2" style="width: auto;" required>
+                            <option disabled selected hidden>Rate</option>
+                            {% for i in rating_choices %}
+                            <option value="{{ i }}" {% if user_rating and user_rating.score == i %}selected{% endif %}>
+                                {{ i }} ★
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" name="rating_submit" class="btn btn-sm btn-primary">Submit</button>
+                    </form>
+                    {% endif %}
+                </div>
+                
                 <p><strong>Status:</strong> {{ item.get_status_display }}</p>
                 <p><strong>Location:</strong> {{ item.location }}</p>
 
+                <hr>
+                <div className="comments_view">
+                    <h4>Comments (must be a patron)</h4>
+    
+                    {% if user_type == 'Patron' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ comment_form.as_p }}
+                        <button type="submit" name="comment_submit" class="btn btn-primary btn-sm mt-2">Post Comment</button>
+                    </form>
+                    {% endif %}
+
+                    <hr/>
+    
+                    {% for comment in comments %}
+                    <div class="card my-2">
+                        <div class="card-body">
+                            <p class="mb-1">{{ comment.text }}</p>
+                            <small class="text-muted">— {{ comment.patron.name }} on {{ comment.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No comments yet. Be the first to comment!</p>
+                    {% endfor %}
+                </div>
+
                 <!-- Buttons -->
                 <div class="d-flex justify-content-between mt-3">
-                    <a href="{% url 'collections' %}" class="btn btn-primary btn-custom">Back to Collection</a>
+                    <a href="{% url 'collections' %}" class="btn btn-primary btn-custom">← Back to Collection</a>
 
                     {% if user_type == 'Librarian' or user_type == 'Patron' %}
                         <form method="POST" action="{% url 'borrow_redirect' item.pk %}">
