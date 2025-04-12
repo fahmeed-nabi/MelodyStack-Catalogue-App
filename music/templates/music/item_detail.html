@@ -128,6 +128,15 @@
                 </div>
 
                 <!-- Other Item Details -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags == 'error' %} alert-danger {% elif message.tags == 'success' %} alert-success {% endif %} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                <p><strong>Description:</strong> {{ item.description }}</p>
+
                 <p><strong>Genre:</strong> {{ item.genre }}</p>
                 <p><strong>Description:</strong> {{ item.description }}</p>
                 <p><strong>Owner:</strong> {{ item.owner.first_name }}</p>
@@ -190,6 +199,8 @@
                             {% csrf_token %}
                             {% if item.status != "CHECKED_IN" %}
                                 <button class="btn btn-secondary btn-custom request-btn" disabled>UNAVAILABLE</button>
+                            {% elif denied %}
+                                <button class="btn btn-danger btn-custom request-btn" disabled>DENIED</button>
                             {% elif already_requested %}
                                 <button class="btn btn-warning btn-custom request-btn" disabled>PENDING REQUEST</button>
                             {% else %}

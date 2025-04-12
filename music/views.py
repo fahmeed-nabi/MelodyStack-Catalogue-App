@@ -8,5 +8,3 @@ the music/views/ directory. Each view group (e.g., auth, patron, librarian, etc.
 better maintainability. Please refer to the music/views/ folder for the view implementations or to
 include your views.
 """
-
-

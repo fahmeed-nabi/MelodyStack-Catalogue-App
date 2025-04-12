@@ -23,11 +23,12 @@ collection_urls = [
 
 # Item-related URLS
 item_urls = [
-    path('item/<int:pk>/', item_views.ItemDetailView.as_view(), name='item_detail'),
-    path('item/<int:pk>/edit/', item_views.ItemEditView.as_view(), name='item_edit'),
-    path('item/<int:pk>/delete/', item_views.ItemDeleteView.as_view(), name='item_delete'),
-    path('borrow_redir/<int:pk>/', item_views.borrow_redir, name='borrow_redirect'),
-    path('saved-items/', item_views.saved_items_view, name='saved_items'),
+    path('item/<int:pk>/', views.ItemDetailView.as_view(), name='item_detail'),
+    path('item/<int:pk>/edit/', views.ItemEditView.as_view(), name='item_edit'),
+    path('item/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
+    path('borrow_redir/<int:pk>/', views.borrow_redir, name='borrow_redirect'),
+    path('saved-items/', views.saved_items_view, name='saved_items'),
+    path('return_redir/<int:pk>', views.return_redir, name='return_redirect')
 ]
 
 # Librarian-related URLs
