@@ -22,6 +22,7 @@ item_urls = [
     path('item/<int:pk>/delete/', views.ItemDeleteView.as_view(), name='item_delete'),
     path('borrow_redir/<int:pk>/', views.borrow_redir, name='borrow_redirect'),
     path('saved-items/', views.saved_items_view, name='saved_items'),
+    path('return_redir/<int:pk>', views.return_redir, name='return_redirect')
 ]
 
 # Librarian-related URLs
