@@ -20,4 +20,3 @@ admin.site.register(Collection, CollectionAdmin)
 admin.site.register(Librarian, LibrarianAdmin)
 admin.site.register(Patron, PatronAdmin)
 admin.site.register(BorrowRequest, BorrowRequestAdmin)
-

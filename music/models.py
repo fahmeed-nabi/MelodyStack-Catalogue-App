@@ -37,7 +37,10 @@ class Item(models.Model):
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    genre = models.TextField(blank=True, null=True, default="None")
     average_rating = models.FloatField(default=0.0)
+
+    owner = models.ForeignKey(User, related_name="owner", on_delete=models.CASCADE, blank=True)
 
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
     due_date = models.DateField(blank=True, null=True)
@@ -107,7 +110,7 @@ class Patron(models.Model):
 
 
 class Collection(models.Model):
-    title = models.CharField(max_length=100)  # Title of the collection (genre)
+    title = models.CharField(max_length=100)
     description = models.TextField(max_length=500, blank=True, null=True)  # Optional
     public = models.BooleanField(default=True)  # Whether the collection is public or private
     private_users = models.ManyToManyField(
@@ -209,6 +212,7 @@ class Librarian(models.Model):
 
         super().save(*args, **kwargs)
 
+
 class BorrowRequest(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
@@ -216,10 +220,9 @@ class BorrowRequest(models.Model):
         ('DENIED', 'Denied'),
         ('OVERDUE', 'Overdue')
     ]
- 
+
     requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
-    requester = models.ForeignKey(User, related_name="requester", on_delete=models.CASCADE, blank=True, null=True) 
+    requester = models.ForeignKey(User, related_name="requester", on_delete=models.CASCADE, blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='PENDING'
     )
-
