@@ -40,7 +40,7 @@ class Item(models.Model):
     average_rating = models.FloatField(default=0.0)
 
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
-    due_date = models.DateField(blank=True, null=True)
+    due_date = models.DateField(default=timezone.now)
 
     def is_accessible_by(self, user):
         """
