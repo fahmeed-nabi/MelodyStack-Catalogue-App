@@ -13,7 +13,6 @@ class Item(models.Model):
         ('CHECKED_IN', 'Checked In'),
         ('IN_CIRCULATION', 'In Circulation'),
         ('BEING_REPAIRED', 'Being Repaired'),
-        ('BORROWED', 'Borrowed'),
     ]
     MEDIA_TYPE_CHOICES = [
         ('CD', 'CD'),
@@ -39,8 +38,6 @@ class Item(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     genre = models.TextField(blank=True, null=True, default="None")
     average_rating = models.FloatField(default=0.0)
-
-    owner = models.ForeignKey(User, related_name="owner", on_delete=models.CASCADE, blank=True)
 
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
     due_date = models.DateField(blank=True, null=True)

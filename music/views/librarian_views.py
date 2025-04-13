@@ -379,7 +379,7 @@ def approve_request(request, borrow_request_id, user_id):
     borrow_request.status = 'APPROVED'
     borrow_request.save()
     item = borrow_request.requested_item
-    item.status = 'BORROWED'
+    item.status = 'IN_CIRCULATION'
     item.due_date = timezone.now() + timezone.timedelta(days=7)
     item.save()
     messages.success(request, f"Borrow request for {borrow_request.requester.first_name} has been approved.")
