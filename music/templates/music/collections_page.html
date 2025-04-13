@@ -172,7 +172,7 @@
                 <a class="nav-link nav-tab {% if request.resolver_match.url_name == 'collections' %}active-tab{% endif %}" href="{% url 'collections' %}">Collections</a>
                 <a class="nav-link nav-tab {% if request.path == '/help/' %}active-tab{% endif %}" href="{% url 'help' %}">Help</a>
                 <a class="nav-link nav-tab {% if request.path == '/about/' %}active-tab{% endif %}" href="{% url 'about' %}">About</a>
-                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="#">My Items</a>
+                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="{% url 'outgoing_requests' %}">My Items</a>
             </nav>
         </div>
 
