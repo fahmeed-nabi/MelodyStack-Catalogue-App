@@ -101,15 +101,18 @@
         {% if incoming_list %}
             <div id="collectionsList">
                 {% for incoming_request in incoming_list %}
-                        {% if incoming_request.status == 'PENDING' %}
+                        {% if incoming_request.status == 'PENDING' and incoming_request.requester %}
                         <div class="collection-item">
-                            <span class="request-username"> Item "{{ incoming_request.requested_item.title }}" requested by {{ incoming_request.requester.first_name }} </span>
+                            <span class="request-username">
+                                Item "{{ incoming_request.requested_item.title }}" requested by {{ incoming_request.requester.first_name }}
+                            </span>
                             <div class="action-buttons">
-                                <a href="{% url 'approve_request' incoming_request.id incoming_request.requester.id%}" class="btn btn-success btn-sm">Approve</a>
+                                <a href="{% url 'approve_request' incoming_request.id incoming_request.requester.id %}" class="btn btn-success btn-sm">Approve</a>
                                 <a href="{% url 'deny_request' incoming_request.id incoming_request.requester.id %}" class="btn btn-danger btn-sm">Deny</a>
                             </div>
                         </div>
                         {% endif %}
+
                     <!-- Action Buttons -->
                 {% endfor %}
             </div>

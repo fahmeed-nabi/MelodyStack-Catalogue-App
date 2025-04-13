@@ -419,7 +419,8 @@ def outgoing_requests(request):
 
     outgoing_list = BorrowRequest.objects.filter(requester=curr_user)
     for outgoing_request in outgoing_list:
-        if (timezone.now().date() > outgoing_request.requested_item.due_date and outgoing_request.status == "APPROVED"):
+        due_date = outgoing_request.requested_item.due_date
+        if due_date and timezone.now().date() > due_date and outgoing_request.status == "APPROVED":
             outgoing_request.status = 'OVERDUE'
             outgoing_request.save()
 
