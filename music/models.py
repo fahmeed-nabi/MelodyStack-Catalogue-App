@@ -13,7 +13,6 @@ class Item(models.Model):
         ('CHECKED_IN', 'Checked In'),
         ('IN_CIRCULATION', 'In Circulation'),
         ('BEING_REPAIRED', 'Being Repaired'),
-        ('BORROWED', 'Borrowed'),
     ]
     MEDIA_TYPE_CHOICES = [
         ('CD', 'CD'),
@@ -37,12 +36,11 @@ class Item(models.Model):
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    genre = models.TextField(blank=True, null=True, default="None")
     average_rating = models.FloatField(default=0.0)
 
-    owner = models.ForeignKey(User, related_name="owner", on_delete=models.CASCADE, blank=True)
-
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
-    due_date = models.DateField(blank=True, null=True)
+    due_date = models.DateField(default=timezone.now)
 
     def is_accessible_by(self, user):
         """
@@ -75,7 +73,7 @@ class Patron(models.Model):
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     date_joined = models.DateTimeField('date_joined')
 
-    saved_items = models.ManyToManyField(Item, related_name='saved_items', blank=True)
+    saved_items = models.ManyToManyField(Item, related_name='patron_saved_items', blank=True)
     borrowed_items = models.ManyToManyField(Item, related_name='borrowed_items', blank=True)
     ratings_by = models.ManyToManyField('Rating', related_name='ratings_by', blank=True)
     comments_by = models.ManyToManyField('Comment', related_name='comments_by', blank=True)
@@ -87,8 +85,8 @@ class Patron(models.Model):
     def __str__(self):
         return self.name
 
-    def delete(self, *args, **kwargs):
-        if self.profile_picture:
+    def delete(self, promote=False, *args, **kwargs):
+        if self.profile_picture and not promote:
             aws.delete_file(self.profile_picture.name, os.environ.get('BUCKET_NAME'))
         super().delete(*args, **kwargs)
 
@@ -109,7 +107,7 @@ class Patron(models.Model):
 
 
 class Collection(models.Model):
-    title = models.CharField(max_length=100)  # Title of the collection (genre)
+    title = models.CharField(max_length=100)
     description = models.TextField(max_length=500, blank=True, null=True)  # Optional
     public = models.BooleanField(default=True)  # Whether the collection is public or private
     private_users = models.ManyToManyField(
@@ -138,7 +136,13 @@ class Collection(models.Model):
 
     # Delete all items associated with this collection
     def delete(self, *args, **kwargs):
-        self.items.all().delete()
+        for item in self.items.all():
+            item.collections.remove(self)
+
+            # If the item no longer belongs to any collections, clear its collections field
+            if item.collections.count() == 0:
+                item.collections.clear()
+
         super().delete(*args, **kwargs)
 
     def __str__(self):
@@ -175,6 +179,7 @@ class Librarian(models.Model):
     name = models.CharField(max_length=200)
     google_account = models.CharField(max_length=200)
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
+    saved_items = models.ManyToManyField(Item, related_name='librarian_saved_items', blank=True)
     date_joined = models.DateTimeField('date_joined')
 
     # Optional info
@@ -204,20 +209,17 @@ class Librarian(models.Model):
 
         super().save(*args, **kwargs)
 
-class BorrowRequest(models.Model):
-    requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
-    item_owner = models.ForeignKey(User, related_name="item_owner", on_delete=models.CASCADE)
-    requesters = models.ManyToManyField('BorrowRequester', related_name="requesters", blank=True)
 
-class BorrowRequester(models.Model):
+class BorrowRequest(models.Model):
     STATUS_CHOICES = [
-        ('APPROVED', 'Approved'),
         ('PENDING', 'Pending'),
-        ('DENIED', 'Denied')
+        ('APPROVED', 'Approved'),
+        ('DENIED', 'Denied'),
+        ('OVERDUE', 'Overdue')
     ]
 
-    request_user = models.ForeignKey(User, related_name="request_user", on_delete=models.CASCADE)
+    requested_item = models.ForeignKey(Item, related_name="requested_item", on_delete=models.CASCADE)
+    requester = models.ForeignKey(User, related_name="requester", on_delete=models.CASCADE, blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='PENDING'
     )
-    associated_request = models.ForeignKey(BorrowRequest, related_name="associated_request", on_delete=models.CASCADE)

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promote Patron Confirmation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-5 d-flex flex-column justify-content-center align-items-center text-center">
+        <h1 class="text-danger">Promote Patron</h1>
+        <p class="text-muted fs-5">
+            Are you sure you want to promote the patron "<strong>{{ patron.name }}</strong>" to a librarian?
+        </p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success me-2">Promote</button>
+            <a href="{% url 'promote_patron' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+
+    <!-- Sticky Footer -->
+    <footer class="bg-light py-3 text-center mt-auto">
+        <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

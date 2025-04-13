@@ -50,9 +50,9 @@
           <!-- New Grouped Buttons Section -->
           <div class="mt-4">
             <div class="btn-group d-flex flex-wrap justify-content-center" role="group">
-              <a href="#" class="btn btn-outline-info">📝 View My Reviews</a>
-              <a href="#" class="btn btn-outline-warning">⭐ View Saved Items</a>
-              <a href="#" class="btn btn-outline-success">📖 View Borrowed Items</a>
+              <a href="#" class="btn btn-info">📝 View My Reviews</a>
+              <a href="{% url 'saved_items' %}" class="btn btn-warning">⭐ View Saved Items</a>
+              <a href="#" class="btn btn-success">📖 View Borrowed Items</a>
               <a href="{% url 'outgoing_requests' %}" class="btn btn-outline-info active">➡️ Outgoing Requests</a>
             </div>
           </div>

@@ -22,28 +22,34 @@
             border-radius: 20px;
             font-weight: 500;
             transition: all 0.3s ease;
-            margin-left: 10px;
         }
         .btn-custom:hover {
             background-color: #1a252f;
             color: white;
         }
-        .container {
-            margin-top: 50px;
+        .scroll-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        #itemSearch {
+            width: 100%;
+            margin-bottom: 10px;
+            border-radius: 30px;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+        }
+        #itemSearch:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.25);
         }
         footer {
             margin-top: auto;
-            text-align: center;
-            background-color: #f1f1f1;
-            padding: 10px;
-        }
-        .char-count {
-            font-size: 0.9em;
-            color: #6c757d;
-            text-align: right;
-        }
-        .alert {
-            margin-top: 20px;
         }
     </style>
 </head>
@@ -54,66 +60,118 @@
         <a href="{% url 'patron' %}" class="btn btn-light btn-custom">Go to Dashboard</a>
     </header>
 
-    <!-- Main Container -->
+    <!-- Main Content -->
     <div class="container mt-5">
-        <h2 class="mb-4">Create New Collection</h2>
+        <h2>Create New Collection</h2>
 
-        <!-- Display Error or Success Messages -->
+        <!-- Display error or success messages -->
         {% if messages %}
         <div class="alert alert-danger" id="messages-alert">
             {% for message in messages %}
-            <p>{{ message }}</p>
+                <p>{{ message }}</p>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Collection Form -->
-        <form method="post" action="" id="collection-form">
+        <form method="post">
             {% csrf_token %}
 
             <!-- Title Field -->
             <div class="mb-3">
-                <label for="collection-title" class="form-label">Title:</label>
-                <input type="text" id="collection-title" name="title" class="form-control" maxlength="100" required>
-                <div class="char-count" id="collection-title-char-count">100 characters remaining</div>
+                <label for="title" class="form-label">Collection Title:</label>
+                <input type="text" id="title" name="title" class="form-control" maxlength="100" required
+                       oninput="updateCharCount('title', 'title-char-count', 100)">
+                <div id="title-char-count" class="char-count">
+                    100 characters remaining
+                </div>
             </div>
+
 
             <!-- Description Field -->
             <div class="mb-3">
-                <label for="collection-description" class="form-label">Description:</label>
-                <textarea id="collection-description" name="description" class="form-control" rows="4" maxlength="500"></textarea>
-                <div class="char-count" id="collection-description-char-count">500 characters remaining</div>
+                <label for="description" class="form-label">Description:</label>
+                <textarea id="description" name="description" class="form-control" rows="4" maxlength="500"
+                          oninput="updateCharCount('description', 'description-char-count', 500)"></textarea>
+                <div id="description-char-count" class="char-count">
+                    500 characters remaining
+                </div>
             </div>
 
-            <!-- Public Field (Hidden) -->
-            <input type="hidden" name="public" value="true">
+
+            <!-- Search Bar for Filtering Items -->
+            <div class="mb-3">
+                <label for="itemSearch" class="form-label">Items:</label>
+                <input type="text" id="itemSearch" class="form-control" placeholder="Search items...">
+            </div>
+
+            <!-- Scrollable Items Selection -->
+            <div id="itemsList" class="scroll-container">
+                {% for item in available_items %}
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input item-checkbox" id="item-{{ item.id }}" name="items"
+                               value="{{ item.id }}">
+                        <label class="form-check-label" for="item-{{ item.id }}">{{ item.title }}</label>
+                    </div>
+                {% empty %}
+                    <p>No available items to add.</p>
+                {% endfor %}
+            </div>
 
             <!-- Submit Button -->
-            <button type="submit" name="submit_collection" class="btn btn-success btn-custom mt-4">Create Collection</button>
+            <button type="submit" name="submit_collection" class="btn btn-primary mt-3">Create Collection</button>
         </form>
     </div>
 
     <!-- Footer -->
-    <footer>
-        <p>This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
+    <footer class="bg-light py-3">
+        <div class="container text-center">
+            <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
+        </div>
     </footer>
 
-    <!-- JavaScript for Character Counting -->
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            initializeCharCount("collection-title", "collection-title-char-count", 100);
-            initializeCharCount("collection-description", "collection-description-char-count", 500);
-        });
+    document.addEventListener("DOMContentLoaded", function () {
+        const itemSearch = document.getElementById('itemSearch');
+        const itemsList = document.getElementById('itemsList');
+        const itemCheckboxes = itemsList.getElementsByClassName('form-check');
 
-        function initializeCharCount(inputId, charCountId, maxLength) {
+        // Filter items based on search input
+        itemSearch.addEventListener('input', function () {
+            const searchTerm = itemSearch.value.toLowerCase();
+
+            Array.from(itemCheckboxes).forEach(function (item) {
+                const label = item.querySelector('.form-check-label');
+                if (label.textContent.toLowerCase().includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        function updateCharCount(inputId, countId, maxLength) {
             const inputElement = document.getElementById(inputId);
-            const charCountElement = document.getElementById(charCountId);
+            const countElement = document.getElementById(countId);
 
             inputElement.addEventListener("input", function () {
-                const remainingChars = maxLength - inputElement.value.length;
-                charCountElement.textContent = `${remainingChars} characters remaining`;
+                const remaining = maxLength - inputElement.value.length;
+                countElement.textContent = `${remaining} characters remaining`;
             });
+
+            // Initialize character count on page load
+            const initialRemaining = maxLength - inputElement.value.length;
+            countElement.textContent = `${initialRemaining} characters remaining`;
         }
+
+        // Initialize character counters for Title and Description fields
+        updateCharCount("title", "title-char-count", 100);
+        updateCharCount("description", "description-char-count", 500);
+    });
+
     </script>
 </body>
 </html>
