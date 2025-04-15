@@ -30,6 +30,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['project-b-24-s2025-c2e9cfd287ea.herokuapp.com', '127.0.0.1', 'localhost']
 
+# Redirects request if not HTTPS
+SECURE_SSL_REDIRECT = True
+# Trust X-Forwarded-Proto header Heroku sends
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
