@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from .models import Patron, Librarian
@@ -11,7 +11,8 @@ User = get_user_model()
 # Create your tests here.
 
 # Makes sure login page is able to be rendered with no errors
-# Does not use logged in user 
+# Does not use logged in user
+@override_settings(SECURE_SSL_REDIRECT=False)  # Include this to send requests over HTTP, so tests do not break
 class RenderLoginPage(TestCase):
     def test_render_login_page(self):
         response = self.client.get(reverse("login"))
@@ -19,12 +20,14 @@ class RenderLoginPage(TestCase):
 
 # Makes sure public collections pag eis able to be rendered with no errors
 # Does not use logged in user
+@override_settings(SECURE_SSL_REDIRECT=False)
 class RenderingAnonymousFrontPage(TestCase):
     def test_render_anonymous_front_page(self):
         response = self.client.get(reverse("collections"))
         self.assertEqual(response.status_code, 200)
 
 # These test cases test different redirects
+@override_settings(SECURE_SSL_REDIRECT=False)
 class TestLoginRedirects(TestCase):
 
     # Sets up a sample user
