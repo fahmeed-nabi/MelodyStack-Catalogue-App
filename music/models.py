@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from . import aws
 from mysite.settings import os.environ.get('BUCKET_NAME')
-
+import uuid
 User = get_user_model()
 
 # Create your models here.
@@ -22,6 +22,7 @@ class Item(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
+    serial_num = models.UUIDField(default=uuid.uuid4, blank=False, null=False, unique=True)
     title = models.CharField(max_length=100)
     description = models.TextField(max_length=500, blank=True, null=True)
     status = models.CharField(
@@ -37,7 +38,7 @@ class Item(models.Model):
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     genre = models.TextField(blank=True, null=True, default="None")
-    average_rating = models.FloatField(default=0.0)
+    average_rating = models.FloatField(null=True, blank=True)
 
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
     due_date = models.DateField(default=timezone.now)
