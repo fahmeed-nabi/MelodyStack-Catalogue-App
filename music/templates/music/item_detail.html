@@ -220,6 +220,7 @@
 
 <script>
     document.getElementById('save-item-btn').addEventListener('click', function() {
+        const user_type = "{{ user_type }}";
         const formData = new FormData(document.getElementById('save-item-form'));
 
         fetch("{% url 'item_detail' item.pk %}", {
@@ -237,13 +238,19 @@
               // Toggle button state
               const saveBtn = document.getElementById('save-item-btn');
               if (saveBtn.classList.contains('btn-outline-primary')) {
-                  saveBtn.classList.remove('btn-outline-primary');
-                  saveBtn.classList.add('btn-saved');
-                  saveBtn.textContent = "Saved";
+                  if (user_type !== 'Anonymous') {
+                      saveBtn.classList.add('btn-saved');
+                      saveBtn.classList.remove('btn-outline-primary');
+                      saveBtn.textContent = "Saved";
+                  } else {
+                      saveBtn.textContent = "Save";
+                  }
               } else {
-                  saveBtn.classList.remove('btn-saved');
-                  saveBtn.classList.add('btn-outline-primary');
-                  saveBtn.textContent = "Save";
+                  if (user_type !== 'Anonymous') {
+                      saveBtn.classList.remove('btn-saved');
+                      saveBtn.classList.add('btn-outline-primary');
+                      saveBtn.textContent = "Save";
+                  }
               }
           }).catch(error => console.error('Error:', error));
     });
