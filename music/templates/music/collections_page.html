@@ -186,13 +186,17 @@
 
 
     <div class="container mt-5">
-        <h1 class="text-center text-uppercase fw-light text-dark mb-4">
+        <h1 class="text-center text-uppercase fw-light text-dark mb-2">
             {% if active_collection %}
                 {{ active_collection.title }}
             {% else %}
                 Music Media Storefront
             {% endif %}
         </h1>
+
+        {% if active_collection and active_collection.creator %}
+            <p class="text-center text-muted mb-1 fst-italic">Created by {{ active_collection.creator.user|default:active_collection.creator.user.username }}</p>
+        {% endif %}
 
         {% if active_collection %}
             <p class="text-center text-secondary mb-4">{{ active_collection.description }}</p>
