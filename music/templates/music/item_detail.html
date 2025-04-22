@@ -177,7 +177,7 @@
                     <form method="post">
                         {% csrf_token %}
                         {{ comment_form.as_p }}
-                        <button type="submit" name="comment_submit" class="btn btn-primary btn-sm mt-2">Post Comment</button>
+                        <button type="submit" name="comment_submit" class="btn btn-primary btn-sm mt-2">Post Comment (max 200 characters)</button>
                     </form>
                     {% endif %}
 
