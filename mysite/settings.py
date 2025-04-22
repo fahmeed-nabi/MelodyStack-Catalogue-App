@@ -17,7 +17,7 @@ load_dotenv("env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+IS_HEROKU_APP = "DYNO" in os.environ and not "CI" in os.environ
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -30,10 +30,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['project-b-24-s2025-c2e9cfd287ea.herokuapp.com', '127.0.0.1', 'localhost']
 
-# Redirects request if not HTTPS
-SECURE_SSL_REDIRECT = True
-# Trust X-Forwarded-Proto header Heroku sends
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+if IS_HEROKU_APP:
+    # Redirects request if not HTTPS
+    SECURE_SSL_REDIRECT = True
+    # Trust X-Forwarded-Proto header Heroku sends
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
@@ -106,7 +107,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-IS_HEROKU_APP = "DYNO" in os.environ and not "CI" in os.environ
+# IS_HEROKU_APP = "DYNO" in os.environ and not "CI" in os.environ
 
 if IS_HEROKU_APP:
     DATABASES = {
