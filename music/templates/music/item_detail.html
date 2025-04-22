@@ -135,11 +135,9 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-                <p><strong>Description:</strong> {{ item.description }}</p>
 
                 <p><strong>Genre:</strong> {{ item.genre }}</p>
                 <p><strong>Description:</strong> {{ item.description }}</p>
-                <p><strong>Owner:</strong> {{ item.owner.first_name }}</p>
                 <div class="d-flex align-items-center mb-3">
                     <p class="mb-0 me-2"><strong>Rating:</strong> {{ item.average_rating }} ★</p>
                     {% if user_rating %}
