@@ -165,7 +165,7 @@ class Rating(models.Model):
 class Comment(models.Model):
     item = models.ForeignKey(Item, related_name='comments', on_delete=models.CASCADE)
     patron = models.ForeignKey(Patron, related_name='comments', on_delete=models.CASCADE)
-    text = models.TextField()
+    text = models.TextField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     thumbs_up = models.IntegerField(default=0)
 

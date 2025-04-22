@@ -347,7 +347,13 @@
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }}</h6>
                                 <p class="card-text text-secondary small"><strong>Genre:</strong> {{ item.genre }}</p>
                                 <p class="card-text text-secondary small">{{ item.description }}</p>
-                                <p class="card-text text-secondary small"><strong>Rating:</strong> {{ item.average_rating }}</p>
+                                <p class="card-text text-secondary small"><strong>Rating:</strong>
+                                    {% if item.average_rating %}
+                                        {{ item.average_rating }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </p>
                                 <p class="card-text"><small class="text-muted">Posted on {{ item.created_at|date:"F j, Y" }}</small></p>
                             </div>
                             <div class="card-footer text-center border-0">
