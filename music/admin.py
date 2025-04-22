@@ -9,7 +9,7 @@ class LibrarianAdmin(admin.ModelAdmin):
     fields = ["user", "name", "google_account", "date_joined", "profile_picture"]
 
 class CollectionAdmin(admin.ModelAdmin):
-    fields = ["title", "description", "public", "private_users"]
+    fields = ["title", "description", "public", "private_users", "pending_users", "creator"]
 
 class BorrowRequestAdmin(admin.ModelAdmin):
     fields = ["requested_item", "status", "requester"]

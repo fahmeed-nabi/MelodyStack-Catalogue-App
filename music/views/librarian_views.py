@@ -118,7 +118,7 @@ def patron_promotion_confirmation(request, patron_id):
                               profile_picture=patron.profile_picture, date_joined=patron.date_joined, bio=patron.bio,
                               birthday=patron.birthday)
         librarian.save()
-        patron.delete()
+        patron.delete(promote=True)
         return redirect("promote_patron")
 
     return render(request, 'music/promote_patron_confirmation.html', {'patron': patron})
