@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from . import aws
 from mysite.settings import os.environ.get('BUCKET_NAME')
-
+import uuid
 User = get_user_model()
 
 # Create your models here.
@@ -22,6 +22,7 @@ class Item(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
+    serial_num = models.UUIDField(default=uuid.uuid4, blank=False, null=False, unique=True)
     title = models.CharField(max_length=100)
     description = models.TextField(max_length=500, blank=True, null=True)
     status = models.CharField(
@@ -165,7 +166,7 @@ class Rating(models.Model):
 class Comment(models.Model):
     item = models.ForeignKey(Item, related_name='comments', on_delete=models.CASCADE)
     patron = models.ForeignKey(Patron, related_name='comments', on_delete=models.CASCADE)
-    text = models.TextField()
+    text = models.TextField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     thumbs_up = models.IntegerField(default=0)
 

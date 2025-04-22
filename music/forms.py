@@ -68,9 +68,17 @@ class CommentForm(forms.ModelForm):
             'text': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Write a comment...'
+                'placeholder': 'Write a comment...',
+                'maxlength': 200,  # HTML-level limit
             }),
         }
+
+    def clean_text(self):
+        text = self.cleaned_data.get('text')
+        if len(text) > 200:
+            raise forms.ValidationError("Comment cannot exceed 200 characters.")
+        return text
+
 
 class RatingForm(forms.ModelForm):
     class Meta:

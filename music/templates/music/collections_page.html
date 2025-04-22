@@ -172,7 +172,7 @@
                 <a class="nav-link nav-tab {% if request.resolver_match.url_name == 'collections' %}active-tab{% endif %}" href="{% url 'collections' %}">Collections</a>
                 <a class="nav-link nav-tab {% if request.path == '/help/' %}active-tab{% endif %}" href="{% url 'help' %}">Help</a>
                 <a class="nav-link nav-tab {% if request.path == '/about/' %}active-tab{% endif %}" href="{% url 'about' %}">About</a>
-                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="#">My Items</a>
+                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="{% url 'outgoing_requests' %}">My Items</a>
             </nav>
         </div>
 
@@ -347,7 +347,13 @@
                                 <h6 class="card-subtitle mb-2 text-muted fst-italic">{{ item.media_type }}</h6>
                                 <p class="card-text text-secondary small"><strong>Genre:</strong> {{ item.genre }}</p>
                                 <p class="card-text text-secondary small">{{ item.description }}</p>
-                                <p class="card-text text-secondary small"><strong>Rating:</strong> {{ item.average_rating }}</p>
+                                <p class="card-text text-secondary small"><strong>Rating:</strong>
+                                    {% if item.average_rating %}
+                                        {{ item.average_rating }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </p>
                                 <p class="card-text"><small class="text-muted">Posted on {{ item.created_at|date:"F j, Y" }}</small></p>
                             </div>
                             <div class="card-footer text-center border-0">

@@ -176,7 +176,8 @@ def edit_collection_patron(request, title, collection_id):
         if "submit_collection" in request.POST:
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title__iexact=title).exists():  # Check for duplicate titles
+                title_query = Collection.objects.filter(title__iexact=title)
+                if title_query.exists() and title_query.first().id != collection.id:  # Check for duplicate titles
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection.public = True  # Forces the collection to be public
