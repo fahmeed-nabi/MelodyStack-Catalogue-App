@@ -36,7 +36,7 @@ class Item(models.Model):
     )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    genre = models.TextField(blank=True, null=True, default="None")
+    genre = models.TextField(blank=True, null=True, default="")
     average_rating = models.FloatField(default=0.0)
 
     tags = models.CharField(max_length=255, blank=True, null=True)  # comma-separated list of tags
