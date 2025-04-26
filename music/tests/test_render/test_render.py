@@ -48,7 +48,7 @@ class RenderPatronPages(TestCase):
             last_name="Patron",
             email="test_patron@example.com",
         )
-
+        self.test_user.save()
         self.client.force_login(self.test_user)
 
         # Sets up test patron
@@ -58,12 +58,15 @@ class RenderPatronPages(TestCase):
             google_account="test_patron@example.com",
             date_joined=timezone.now(),
         )
+        self.test_patron.save()
 
         # Sets up test item
         self.test_item = Item.objects.create(title="Test Item",)
+        self.test_item.save()
 
         # Sets up test collection with test patron as creator
         self.test_collection = Collection.objects.create(title="Test Collection", creator=self.test_patron)
+        self.test_collection.save()
 
     # Makes sure patron page is rendered with no errors
     def test_render_patron_page(self):
@@ -130,6 +133,7 @@ class RenderLibrarianPages(TestCase):
             last_name="Patron",
             email="test_patron@example.com",
         )
+        self.test_patron_user.save()
         
         # Sets up test librarian user
         self.test_librarian_user = User.objects.create(
@@ -138,7 +142,7 @@ class RenderLibrarianPages(TestCase):
             last_name="Librarian",
             email="test_librarian@example.com",
         )
-        
+        self.test_librarian_user.save()
         self.client.force_login(self.test_librarian_user)
 
         # Sets up test patron
@@ -148,6 +152,7 @@ class RenderLibrarianPages(TestCase):
             google_account="test_patron@example.com",
             date_joined=timezone.now()
         )
+        self.test_patron.save()
 
         # Sets up test librarian
         self.test_librarian = Librarian.objects.create(
@@ -156,12 +161,15 @@ class RenderLibrarianPages(TestCase):
             google_account="test_libaraian@example.com",
             date_joined=timezone.now(),
         )
+        self.test_librarian.save()
 
         # Sets up test item
         self.test_item = Item.objects.create(title="Test Item",)
+        self.test_item.save()
 
         # Sets up test private collection
         self.test_collection = Collection.objects.create(title="Test Collection", public=False,)
+        self.test_collection.save()
     
     # Makes sure librarian page is rendered with no errors
     def test_render_librarian_page(self):
