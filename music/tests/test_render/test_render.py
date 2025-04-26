@@ -44,9 +44,9 @@ class RenderPatronPages(TestCase):
         # Sets up test user
         self.test_user = User.objects.create(
             username="test_patron",
-            email="test_patron@example.com",
             first_name="Test",
             last_name="Patron",
+            email="test_patron@example.com",
         )
 
         self.client.force_login(self.test_user)
@@ -62,7 +62,7 @@ class RenderPatronPages(TestCase):
         # Sets up test item
         self.test_item = Item.objects.create(title="Test Item",)
 
-        # Sets up test collection
+        # Sets up test collection with test patron as creator
         self.test_collection = Collection.objects.create(title="Test Collection", creator=self.test_patron)
 
     # Makes sure patron page is rendered with no errors
@@ -126,17 +126,17 @@ class RenderLibrarianPages(TestCase):
         # Sets up test patron user
         self.test_patron_user = User.objects.create(
             username="test_patron",
-            email="test_patron@example.com",
             first_name="Test",
             last_name="Patron",
+            email="test_patron@example.com",
         )
         
         # Sets up test librarian user
         self.test_librarian_user = User.objects.create(
             username="test_librarian",
-            email="test_librarian@example.com",
             first_name="Test",
             last_name="Librarian",
+            email="test_librarian@example.com",
         )
         
         self.client.force_login(self.test_librarian_user)
@@ -160,7 +160,7 @@ class RenderLibrarianPages(TestCase):
         # Sets up test item
         self.test_item = Item.objects.create(title="Test Item",)
 
-        # Sets up test collection
+        # Sets up test private collection
         self.test_collection = Collection.objects.create(title="Test Collection", public=False,)
     
     # Makes sure librarian page is rendered with no errors
