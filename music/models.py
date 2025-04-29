@@ -64,6 +64,8 @@ class Item(models.Model):
     def delete(self, *args, **kwargs):
         if self.image:
             aws.delete_file(self.image.name, os.environ.get('BUCKET_NAME'))
+        if self.audio:
+            aws.delete_file(self.audio.name, os.environ.get('BUCKET_NAME'))
         super().delete(*args, **kwargs)
 
     def __str__(self):
