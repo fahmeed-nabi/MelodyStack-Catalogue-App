@@ -135,12 +135,18 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-                <p><strong>Description:</strong> {{ item.description }}</p>
 
+                <p><strong>Serial Number:</strong> {{ item.serial_num }}</p>
                 <p><strong>Genre:</strong> {{ item.genre }}</p>
                 <p><strong>Description:</strong> {{ item.description }}</p>
                 <div class="d-flex align-items-center mb-3">
-                    <p class="mb-0 me-2"><strong>Rating:</strong> {{ item.average_rating }} ★</p>
+                    <p class="mb-0 me-2"><strong>Rating:</strong>
+                        {% if item.average_rating %}
+                            {{ item.average_rating }} ★
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
                     {% if user_rating %}
                     <p class="text-muted ms-2 mb-0">(Your rating: {{ user_rating.score }} ★)</p>
                     {% endif %}
@@ -171,7 +177,7 @@
                     <form method="post">
                         {% csrf_token %}
                         {{ comment_form.as_p }}
-                        <button type="submit" name="comment_submit" class="btn btn-primary btn-sm mt-2">Post Comment</button>
+                        <button type="submit" name="comment_submit" class="btn btn-primary btn-sm mt-2">Post Comment (max 200 characters)</button>
                     </form>
                     {% endif %}
 
@@ -221,6 +227,7 @@
 
 <script>
     document.getElementById('save-item-btn').addEventListener('click', function() {
+        const user_type = "{{ user_type }}";
         const formData = new FormData(document.getElementById('save-item-form'));
 
         fetch("{% url 'item_detail' item.pk %}", {
@@ -238,13 +245,19 @@
               // Toggle button state
               const saveBtn = document.getElementById('save-item-btn');
               if (saveBtn.classList.contains('btn-outline-primary')) {
-                  saveBtn.classList.remove('btn-outline-primary');
-                  saveBtn.classList.add('btn-saved');
-                  saveBtn.textContent = "Saved";
+                  if (user_type !== 'Anonymous') {
+                      saveBtn.classList.add('btn-saved');
+                      saveBtn.classList.remove('btn-outline-primary');
+                      saveBtn.textContent = "Saved";
+                  } else {
+                      saveBtn.textContent = "Save";
+                  }
               } else {
-                  saveBtn.classList.remove('btn-saved');
-                  saveBtn.classList.add('btn-outline-primary');
-                  saveBtn.textContent = "Save";
+                  if (user_type !== 'Anonymous') {
+                      saveBtn.classList.remove('btn-saved');
+                      saveBtn.classList.add('btn-outline-primary');
+                      saveBtn.textContent = "Save";
+                  }
               }
           }).catch(error => console.error('Error:', error));
     });

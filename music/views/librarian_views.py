@@ -118,7 +118,7 @@ def patron_promotion_confirmation(request, patron_id):
                               profile_picture=patron.profile_picture, date_joined=patron.date_joined, bio=patron.bio,
                               birthday=patron.birthday)
         librarian.save()
-        patron.delete()
+        patron.delete(promote=True)
         return redirect("promote_patron")
 
     return render(request, 'music/promote_patron_confirmation.html', {'patron': patron})
@@ -140,7 +140,8 @@ def create_collection_item(request):
         if "submit_collection" in request.POST:  # User is submitting a Collection
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title__iexact=title).exists():  # Check for duplicate title
+                title_query = Collection.objects.filter(title__iexact=title)
+                if title_query.exists():  # Check for duplicate title
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()
@@ -232,7 +233,8 @@ def edit_collection(request, title, collection_id):
         if "submit_collection" in request.POST:  # User is editing the Collection
             if collection_form.is_valid():
                 title = collection_form.cleaned_data['title']
-                if Collection.objects.filter(title__iexact=title).exists():  # Check for duplicate titles
+                title_query = Collection.objects.filter(title__iexact=title)
+                if title_query.exists() and title_query.first().id != collection.id:  # Check for duplicate titles
                     messages.error(request, f"A Collection with the title '{title}' already exists.")
                 else:
                     collection_form.save()

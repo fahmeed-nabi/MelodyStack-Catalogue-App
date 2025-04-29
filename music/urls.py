@@ -64,6 +64,9 @@ patron_urls = [
     path('patron/manage_collections/delete_collection/<slug:title>/<int:collection_id>/',
          pv.delete_collection_patron, name='delete_collection_patron'),
     path('patron/outgoing_requests', lv.outgoing_requests, name='outgoing_requests'),
+    path("patron/reviews/", pv.manage_reviews_comments, name="manage_reviews_comments"),
+    path("patron/reviews/rating/<int:rating_id>/edit/", pv.edit_rating, name="edit_rating"),
+    path("patron/reviews/comment/<int:comment_id>/edit/", pv.edit_comment, name="edit_comment"),
 ]
 
 # Other URLs
