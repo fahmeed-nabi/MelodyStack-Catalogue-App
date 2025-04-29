@@ -1,6 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
-from django.http import QueryDict
 from django.test import override_settings, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -196,8 +194,8 @@ class TestItemCollectionCreationRedirects(TestCase):
         self.test_user.save()
         self.client.force_login(self.test_user)
     
-    # Tests create item redirect
-    def test_create_item_redirect(self):
+    # Tests create item redirect, no audio
+    def test_create_item_no_audio_redirect(self):
 
         test_librarian = Librarian.objects.create(
             user=self.test_user,
@@ -247,6 +245,86 @@ class TestItemCollectionCreationRedirects(TestCase):
         self.assertEqual(Collection.objects.filter(items__id=item.pk, id=test_second_collection.pk).count(), 1)
 
         self.assertRedirects(response, reverse("collections"))
+
+    # Tests create item redirect, valid audio
+    def test_create_item_valid_audio_redirect(self):
+        test_librarian = Librarian.objects.create(
+            user=self.test_user,
+            name="Test User",
+            google_account="test_user@example.com",
+            date_joined=timezone.now(),
+        )
+        test_librarian.save()
+
+        title = "Test Title"
+        description = "Test Description"
+        status = "CHECKED_IN"
+        location = "Test Location"
+        media_type = "CD"
+        audio_path = "music/tests/test_redirect"
+        audio_name = "test_audio.mp3"
+        tags = "Test Tag 1, Test Tag 2"
+        genre = "Test Genre"
+
+        with open(f"{audio_path}/{audio_name}", "rb") as audio:
+            response = self.client.post(reverse("create_collection_item"), data={
+                "title": title,
+                "description": description,
+                "status": status,
+                "location": location,
+                "media_type": media_type,
+                "audio": audio,
+                "tags": tags,
+                "genre": genre,
+                "submit_item": "",
+            })
+
+        self.assertEqual(Item.objects.count(), 1)
+        item = Item.objects.first()
+        self.assertEqual(item.title, title)
+        self.assertEqual(item.description, description)
+        self.assertEqual(item.status, status)
+        self.assertEqual(item.location, location)
+        self.assertEqual(item.media_type, media_type)
+        self.assertEqual(item.audio.name, f"{Item.audio.field.upload_to}/{audio_name}")
+        self.assertEqual(item.tags, tags)
+        self.assertEqual(item.genre, genre)
+
+        self.assertRedirects(response, reverse("collections"))
+
+    # Tests create item redirect, invalid audio
+    def test_create_item_invalid_audio_redirect(self):
+        test_librarian = Librarian.objects.create(
+            user=self.test_user,
+            name="Test User",
+            google_account="test_user@example.com",
+            date_joined=timezone.now(),
+        )
+        test_librarian.save()
+
+        title = "Test Title"
+        description = "Test Description"
+        status = "CHECKED_IN"
+        location = "Test Location"
+        media_type = "CD"
+        audio_name = "music/tests/test_redirect/invalid_audio.png"
+        tags = "Test Tag 1, Test Tag 2"
+        genre = "Test Genre"
+
+        with open(audio_name, "rb") as audio:
+            response = self.client.post(reverse("create_collection_item"), data={
+                "title": title,
+                "description": description,
+                "status": status,
+                "location": location,
+                "media_type": media_type,
+                "audio": audio,
+                "tags": tags,
+                "genre": genre,
+                "submit_item": "",
+            })
+        
+        self.assertEqual(Item.objects.count(), 0)
     
     # Tests create collection redirect
     def test_create_collection_redirect(self):
