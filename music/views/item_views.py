@@ -71,6 +71,7 @@ class ItemDetailView(DetailView):
             'comments': comments,
             'rating_form': rating_form,
             'user_rating': user_rating,
+            'audio_url': aws.generate_url(item.audio.name, os.environ.get('BUCKET_NAME')) if item.audio else None,
         })
         return context
 
