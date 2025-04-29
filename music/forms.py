@@ -1,5 +1,6 @@
 from django import forms
 from .models import Patron, Librarian, Collection, Item, Comment, Rating
+from mutagen import File as MutagenFile
 
 class SettingsForm(forms.ModelForm):
     class Meta:
@@ -37,6 +38,17 @@ class ItemForm(forms.ModelForm):
         audio = self.cleaned_data.get('audio')
         if audio and not audio.name.lower().endswith(('.mp3', 'wav', 'ogg')):
             raise forms.ValidationError("Invalid audio format")
+        
+        if not audio:
+            return
+
+        try:
+            mutagen_audio = MutagenFile(audio)
+            if mutagen_audio is None:
+                raise forms.ValidationError("Unsupported or invalid audio format.")
+        except Exception:
+            raise forms.ValidationError("Could not read the audio file. It may be corrupted or unsupported.")
+        
         return audio
 
 class FilterForm(forms.Form):
