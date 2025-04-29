@@ -12,6 +12,7 @@ auth_urls = [
     path("login/", auth_views.login_page, name='login'),
     path('redir', auth_views.redir, name="redir"),
     path("logout", auth_views.logout_view, name="logout_view"),
+    path('accounts/social/login/cancelled', auth_views.custom_login_cancelled, name="socialaccount_login_cancelled")
 ]
 
 # Collection-related URLs
