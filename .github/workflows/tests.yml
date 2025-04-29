@@ -8,6 +8,9 @@ on:
             AWS_KEY: { required: true }
             AWS_ID: { required: true }
             BUCKET_NAME: { required: true }
+            DJANGO_SECRET: { required: true}
+            GOOGLE_CLIENT_ID: { required: true }
+            GOOGLE_SECRET: { required: true }
             
 
 jobs:

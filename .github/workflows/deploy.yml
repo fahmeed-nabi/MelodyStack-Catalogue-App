@@ -11,6 +11,9 @@ jobs:
             AWS_KEY: ${{ secrets.AWS_KEY }}
             AWS_ID: ${{ secrets.AWS_ID }}
             BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+            DJANGO_SECRET: ${{ secrets.DJANGO_SECRET }}
+            GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_SECRET: ${{ secrets.GOOGLE_SECRET }}
     deploy:
         needs: [tests]
         runs-on: ubuntu-latest
