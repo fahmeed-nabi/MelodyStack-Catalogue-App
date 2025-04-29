@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Your Ratings & Comments</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        main {
+            flex: 1;
+        }
+        .btn-custom {
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-custom:hover {
+            background-color: #1a252f;
+            color: white;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+
+<main class="container mt-5 mb-5">
+    <div class="mb-4 text-end">
+        <a href="{% url 'patron' %}" class="btn btn-secondary btn-custom">← Return to Dashboard</a>
+    </div>
+
+    <h2 class="text-center text-uppercase fw-bold mb-4">Your Ratings & Comments</h2>
+
+    <!-- Ratings Section -->
+    <div class="mb-5">
+        <h4 class="text-primary mb-4">Ratings</h4>
+        {% if ratings %}
+            <div class="row row-cols-1 row-cols-md-2 g-4">
+                {% for rating in ratings %}
+                <div class="col">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <h5 class="card-title fw-semibold text-dark">{{ rating.item.title }}</h5>
+                            <p class="card-text text-secondary">
+                                Current Rating: <span class="badge bg-primary">{{ rating.score }}</span>
+                            </p>
+                            <form action="{% url 'edit_rating' rating.id %}" method="POST" class="row g-2 align-items-center">
+                                {% csrf_token %}
+                                <div class="col-auto">
+                                    <label for="score-{{ rating.id }}" class="form-label mb-0">New Score:</label>
+                                </div>
+                                <div class="col-auto">
+                                    <select name="score" id="score-{{ rating.id }}" class="form-select form-select-sm">
+                                        {% for i in "12345" %}
+                                            <option value="{{ i }}" {% if rating.score == i|add:0 %}selected{% endif %}>{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary btn-custom">Update</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted fst-italic">You have not rated any items yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Comments Section -->
+    <div>
+        <h4 class="text-primary mb-4">Comments</h4>
+        {% if comments %}
+            <div class="row row-cols-1 row-cols-md-2 g-4">
+                {% for comment in comments %}
+                <div class="col">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <h5 class="card-title fw-semibold text-dark">{{ comment.item.title }}</h5>
+                            <form action="{% url 'edit_comment' comment.id %}" method="POST">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="text-{{ comment.id }}" class="form-label">Edit Comment:</label>
+                                    <textarea name="text" id="text-{{ comment.id }}" class="form-control" rows="3">{{ comment.text }}</textarea>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-outline-success btn-custom">Update Comment</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted fst-italic">You haven't commented on any items yet.</p>
+        {% endif %}
+    </div>
+</main>
+
+<footer class="bg-light py-3 mt-auto">
+    <div class="container text-center">
+        <p class="mb-0">This system is a class project for CS 3240: Software Engineering. It is not monitored, and no real information should be submitted.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

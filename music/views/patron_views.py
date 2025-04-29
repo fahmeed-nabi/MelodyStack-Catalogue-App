@@ -4,10 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from music import aws
 from music.forms import SettingsForm, CollectionForm
-from music.models import Patron, Collection, Item
+from music.models import Patron, Collection, Item, Comment, Rating
 from music.utils import get_user_type
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
@@ -223,3 +224,55 @@ def delete_collection_patron(request, title, collection_id):
         return redirect('manage_collections_patron')  # Redirect to Patron's collections page
 
     return render(request, 'music/delete_collection_patron.html', {'collection': collection})
+
+@login_required
+def manage_reviews_comments(request):
+    curr_user = request.user
+    user_type = get_user_type(curr_user)
+
+    if user_type != "Patron":
+        return redirect("librarian")
+
+    patron = Patron.objects.filter(user=curr_user).first()
+
+    ratings = Rating.objects.filter(patron=patron).select_related('item')
+    comments = Comment.objects.filter(patron=patron).select_related('item')
+
+    context = {
+        'ratings': ratings,
+        'comments': comments,
+    }
+
+    return render(request, "music/manage_reviews_comments.html", context)
+
+
+@login_required
+@require_POST
+def edit_rating(request, rating_id):
+    rating = get_object_or_404(Rating, id=rating_id, patron__user=request.user)
+
+    new_score = request.POST.get("score")
+    if new_score and new_score.isdigit() and 1 <= int(new_score) <= 5:
+        rating.score = int(new_score)
+        rating.save()
+        messages.success(request, f"Rating for '{rating.item.title}' updated.")
+    else:
+        messages.error(request, "Invalid rating. Must be between 1 and 5.")
+
+    return redirect("manage_reviews_comments")
+
+
+@login_required
+@require_POST
+def edit_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id, patron__user=request.user)
+
+    new_text = request.POST.get("text", "").strip()
+    if new_text:
+        comment.text = new_text
+        comment.save()
+        messages.success(request, f"Comment on '{comment.item.title}' updated.")
+    else:
+        messages.error(request, "Comment text cannot be empty.")
+
+    return redirect("manage_reviews_comments")
