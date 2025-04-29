@@ -23,7 +23,7 @@ IS_HEROKU_APP = "DYNO" in os.environ and not "CI" in os.environ
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-os.environ.get("DJANGO_SECRET") = 'os.environ.get("DJANGO_SECRET")'
+os.environ.get("DJANGO_SECRET") = os.environ.get("DJANGO_SECRET") 
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -65,8 +65,8 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         "AUTH_PARAMS": {"access_type": "online"},
         'APP': {
-            'client_id': '960859184516-6coh0h44198sa6ott2est85osd36mkuu.apps.googleusercontent.com',
-            'secret': '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',
+            'client_id': os.environ.get("GOOGLE_CLIENT_ID"),
+            'secret': os.environ.get("GOOGLE_SECRET"),
         },
     }
 }

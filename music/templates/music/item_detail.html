@@ -71,7 +71,7 @@
         <a href="{% if user_type == 'Librarian' %}/music/librarian/
                  {% elif user_type == 'Patron' %}/music/patron/
                  {% else %}/music/login/
-                 {% endif %}" class="header-title fs-2 text-decoration-none text-white">Music Media Storefront</a>
+                 {% endif %}" class="header-title fs-2 text-decoration-none text-white">MELODYSTACK</a>
     </h2>
     {% if user_type == "Librarian" or user_type == "Patron" %}
         <a href="{% url 'logout_view' %}" class="btn btn-light btn-custom">Log Out</a>
@@ -134,6 +134,18 @@
                             {{ message }}
                         </div>
                     {% endfor %}
+                {% endif %}
+
+                {% if audio_url %}
+                    <div class="card my-3">
+                        <div class="card-body">
+                        <h5 class="card-title">Sample Audio</h5>
+                        <audio controls class="w-100">
+                            <source src="{{ audio_url }}" type="audio/mpeg" alt="item.title">
+                            Your browser does not support the audio element.
+                        </audio>
+                        </div>
+                    </div>
                 {% endif %}
 
                 <p><strong>Serial Number:</strong> {{ item.serial_num }}</p>

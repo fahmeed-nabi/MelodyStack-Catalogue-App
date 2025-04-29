@@ -5,6 +5,10 @@ from django.contrib import messages
 from django.utils import timezone
 from mysite.settings import os.environ.get('BUCKET_NAME')
 
+
+def custom_login_cancelled(request):
+    return render(request, "music/login_page.html") 
+
 def login_page(request):
     curr_user = get_user(request)
     if curr_user.is_anonymous:

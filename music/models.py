@@ -35,6 +35,9 @@ class Item(models.Model):
     image = models.ImageField(
         default=None, upload_to='item_images', blank=True, null=True
     )
+    audio = models.FileField(
+        default=None, upload_to='item_audio', blank=True, null=True
+    )
     collections = models.ManyToManyField('Collection', related_name='items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     genre = models.TextField(blank=True, null=True, default="")
@@ -61,6 +64,8 @@ class Item(models.Model):
     def delete(self, *args, **kwargs):
         if self.image:
             aws.delete_file(self.image.name, os.environ.get('BUCKET_NAME'))
+        if self.audio:
+            aws.delete_file(self.audio.name, os.environ.get('BUCKET_NAME'))
         super().delete(*args, **kwargs)
 
     def __str__(self):

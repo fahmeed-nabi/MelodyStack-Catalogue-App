@@ -71,6 +71,7 @@ class ItemDetailView(DetailView):
             'comments': comments,
             'rating_form': rating_form,
             'user_rating': user_rating,
+            'audio_url': aws.generate_url(item.audio.name, os.environ.get('BUCKET_NAME')) if item.audio else None,
         })
         return context
 
@@ -164,7 +165,7 @@ class ItemDetailView(DetailView):
 
 class ItemEditView(UpdateView):
     model = Item
-    fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags', 'genre']
+    fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags', 'genre', 'audio']
     template_name = "music/item_edit.html"
     context_object_name = "item"
 
@@ -172,10 +173,14 @@ class ItemEditView(UpdateView):
         return reverse_lazy('item_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
-        # Validation logic remains unchanged
         description = form.cleaned_data['description']
         image = form.cleaned_data.get('image')
-        allowed_extensions = ['jpg', 'jpeg', 'png']
+        audio = form.cleaned_data.get('audio')
+        if audio:
+            self.object.audio = audio
+        remove_audio = self.request.POST.get('remove_audio')
+        allowed_image_ext = ['jpg', 'jpeg', 'png']
+        allowed_audio_ext = ['mp3', 'wav', 'ogg']
 
         in_public = False
         in_private = False
@@ -200,12 +205,25 @@ class ItemEditView(UpdateView):
             form.add_error('collections', "Item cannot be in more than one private collection.")
             messages.error(self.request, "Error: Item cannot be in more than one private collection.")
             return self.form_invalid(form)
-        elif image:
+
+        if image:
             ext = str(image.name).split('.')[-1].lower()
-            if ext not in allowed_extensions:
+            if ext not in allowed_image_ext:
                 form.add_error('image', "Invalid file format. Only JPG, JPEG, and PNG are allowed.")
-                messages.error(self.request, "Error: Invalid file format. Only JPG, JPEG, and PNG are allowed.")
+                messages.error(self.request, "Error: Invalid image file format.")
                 return self.form_invalid(form)
+
+        if audio:
+            ext = str(audio.name).split('.')[-1].lower()
+            if ext not in allowed_audio_ext:
+                form.add_error('audio', "Invalid file format. Only MP3, WAV, and OGG are allowed.")
+                messages.error(self.request, "Error: Invalid audio file format.")
+                return self.form_invalid(form)
+
+        # Handle audio removal
+        if remove_audio and self.object.audio:
+            self.object.audio.delete(save=False)
+            self.object.audio = None
 
         return super().form_valid(form)
 
