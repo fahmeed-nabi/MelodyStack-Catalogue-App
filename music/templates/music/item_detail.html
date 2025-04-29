@@ -136,6 +136,18 @@
                     {% endfor %}
                 {% endif %}
 
+                {% if audio_url %}
+                    <div class="card my-3">
+                        <div class="card-body">
+                        <h5 class="card-title">Sample Audio</h5>
+                        <audio controls class="w-100">
+                            <source src="{{ audio_url }}" type="audio/mpeg" alt="item.title">
+                            Your browser does not support the audio element.
+                        </audio>
+                        </div>
+                    </div>
+                {% endif %}
+
                 <p><strong>Serial Number:</strong> {{ item.serial_num }}</p>
                 <p><strong>Genre:</strong> {{ item.genre }}</p>
                 <p><strong>Description:</strong> {{ item.description }}</p>
