@@ -177,7 +177,7 @@ def create_collection_item(request):
                     new_item.save()
                     return redirect('collections')
             else:
-                messages.error(request, "Failed to create the item. Please upload an image in .jpg, .jpeg, or .png format.")
+                messages.error(request, "Failed to create the item. Please upload an image in .jpg, .jpeg, or .png format and audio in .mp3, .wav, or .ogg file format.")
 
     else:
         collection_form = CollectionForm()
