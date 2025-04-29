@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Help - Music Media Storefront</title>
+    <title>Help - MelodyStack</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
@@ -81,7 +81,7 @@
             <a href="{% if user_type == 'Librarian' %}/music/librarian/
                      {% elif user_type == 'Patron' %}/music/patron/
                      {% else %}/music/login/
-                     {% endif %}" class="header-title fs-2 text-decoration-none">Music Media Storefront</a>
+                     {% endif %}" class="header-title fs-2 text-decoration-none">MelodyStack</a>
         </h2>
 
         <div class="d-flex align-items-center">
@@ -89,7 +89,7 @@
                 <a class="nav-link nav-tab {% if request.resolver_match.url_name == 'collections' %}active-tab{% endif %}" href="{% url 'collections' %}">Collections</a>
                 <a class="nav-link nav-tab {% if request.resolver_match.url_name == 'help' %}active-tab{% endif %}" href="{% url 'help' %}">Help</a>
                 <a class="nav-link nav-tab {% if request.path == '/about/' %}active-tab{% endif %}" href="{% url 'about' %}">About</a>
-                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="#">My Items</a>
+                <a class="nav-link nav-tab {% if request.path == '/my-item/' %}active-tab{% endif %}" href="{% url 'outgoing_requests' %}">My Items</a>
             </nav>
         </div>
 
