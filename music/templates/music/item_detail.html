@@ -71,7 +71,7 @@
         <a href="{% if user_type == 'Librarian' %}/music/librarian/
                  {% elif user_type == 'Patron' %}/music/patron/
                  {% else %}/music/login/
-                 {% endif %}" class="header-title fs-2 text-decoration-none text-white">Music Media Storefront</a>
+                 {% endif %}" class="header-title fs-2 text-decoration-none text-white">MELODYSTACK</a>
     </h2>
     {% if user_type == "Librarian" or user_type == "Patron" %}
         <a href="{% url 'logout_view' %}" class="btn btn-light btn-custom">Log Out</a>
