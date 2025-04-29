@@ -26,7 +26,7 @@ IS_HEROKU_APP = "DYNO" in os.environ and not "CI" in os.environ
 os.environ.get("DJANGO_SECRET") = os.environ.get("DJANGO_SECRET") 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False 
 
 ALLOWED_HOSTS = ['project-b-24-s2025-c2e9cfd287ea.herokuapp.com', '127.0.0.1', 'localhost']
 
