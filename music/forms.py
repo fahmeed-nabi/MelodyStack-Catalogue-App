@@ -27,11 +27,17 @@ class CollectionForm(forms.ModelForm):
 class ItemForm(forms.ModelForm):
     class Meta:
         model = Item
-        fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'collections', 'tags', 'genre']
+        fields = ['title', 'description', 'status', 'location', 'media_type', 'image', 'audio', 'collections', 'tags', 'genre']
 
     def clean_collections(self):
         collections = self.cleaned_data.get('collections')
         return collections
+    
+    def clean_audio(self):
+        audio = self.cleaned_data.get('audio')
+        if audio and not audio.name.lower().endswith(('.mp3', 'wav', 'ogg')):
+            raise forms.ValidationError("Invalid audio format")
+        return audio
 
 class FilterForm(forms.Form):
     title = forms.CharField(label="Title", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
