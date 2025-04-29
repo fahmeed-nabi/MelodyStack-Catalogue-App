@@ -148,10 +148,6 @@
                             accept=".mp3,.wav,.ogg"
                         >
                         {% if item.audio %}
-                            <audio controls class="mt-2">
-                                <source src="{{ item.audio.url }}" type="audio/mpeg">
-                                Your browser does not support the audio element.
-                            </audio>
                             <div class="form-check mt-2">
                                 <input type="checkbox" class="form-check-input" name="remove_audio" id="remove_audio">
                                 <label class="form-check-label" for="remove_audio">Remove current audio</label>
